@@ -78,7 +78,8 @@ class Twitter(object):
 
         return statuses
 
-    def should_get_image(self, url, filepath):
+    @staticmethod
+    def should_get_image(_url, filepath):
         """
         Should we get this image demending on several considerations
         (does the file exists only right now)
@@ -90,12 +91,13 @@ class Twitter(object):
         Retrieve data from the url
         """
         try:
-            r = self.request.get(url)
-            return r.content
+            request = self.request.get(url)
+            return request.content
         except ConnectionError:
             print "    connection error, didn't get %s" % (url,)
 
-    def put_exif(self, data, status):
+    @staticmethod
+    def put_exif(data, status):
         """
         Put the interesting exif data in a pexif image
           * ImageDescription
@@ -115,13 +117,19 @@ class Twitter(object):
         return img
 
     def prepare_dir(self, filepath):
+        """
+        Prepare what we are going to need on the file system for the next step
+        """
         mkpath(os.path.dirname(filepath))
 
-    def link_daily(self, filepath):
-        directory = os.path.dirname(filepath)
         if not os.path.exists(self.daily):
             mkpath(self.daily)
 
+    def link_daily(self, filepath):
+        """
+        Create a link between the newly download file and daily dir
+        """
+        directory = os.path.dirname(filepath)
         try:
             os.symlink(
                 filepath,
@@ -132,21 +140,20 @@ class Twitter(object):
         except OSError:
             pass
 
-    def write_image(self, img, filepath):
+    @staticmethod
+    def write_image(img, filepath):
         """
         Take a pexif image, write it in filepath and add a link for dailies
         """
         img.writeFile(filepath)
 
-    def write_data(self, data, filepath):
+    @staticmethod
+    def write_data(data, filepath):
         """
         Take data, write it in filepath and add a link for dailies
         """
-        directory = os.path.dirname(filepath)
-        mkpath(directory)
-
-        with open(filepath, 'wb') as fd:
-            fd.write(data)
+        with open(filepath, 'wb') as fdesc:
+            fdesc.write(data)
 
     @staticmethod
     def get_images_from_status(status):
@@ -157,6 +164,9 @@ class Twitter(object):
                 for media in status['entities'].get('media', [])]
 
     def run(self,):
+        """
+        Run the twitter image downloader process
+        """
         try:
             friend_ids = self.twitter.get_friends_ids()['ids']
         except ConnectionError:
