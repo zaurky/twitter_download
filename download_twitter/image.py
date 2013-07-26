@@ -27,10 +27,10 @@ class Twitter(object):
         """
         Init the twitter api and a requests with the good crehencials
         """
-        consumer_key = config.get('main', 'consumer_key'),
-        consumer_secret = config.get('main', 'consumer_secret'),
-        access_key = config.get('main', 'access_key'),
-        access_secret = config.get('main', 'access_secret'))
+        consumer_key = config.get('main', 'consumer_key')
+        consumer_secret = config.get('main', 'consumer_secret')
+        access_key = config.get('main', 'access_key')
+        access_secret = config.get('main', 'access_secret')
 
         self.twitter = Twython(
                             consumer_key,
@@ -43,15 +43,17 @@ class Twitter(object):
                             access_key,
                             access_secret)
 
-        self.data_dir = '/home/olivier/Project/twitter/'
-        self.friends_last_id_file = '%sfriends_last_id.pkl' % self.data_dir
-        self.image_path = '%simages/' % self.data_dir
-        self.daily = '%s/daily/%s/' % (
-                            self.image_path,
-                            datetime.now().strftime('%Y%m%d'),
-                        )
+        self.data_dir = config.get('path', 'data_dir')
+
+        self.friends_last_id_file = config.get('path', 'friends_last_id_file')
+        self.image_path = "%s/" % config.get('path', 'image_path').rstrip('/')
+        self.daily_path = "%s/" % config.get('path', 'daily_path').rstrip('/')
+
+        self.daily = '%s%s/' % (self.daily_path,
+            datetime.now().strftime('%Y%m%d'))
 
         if os.path.exists(self.friends_last_id_file):
+            print "retrieve %s" % self.friends_last_id_file
             pkl_file = open(self.friends_last_id_file, 'rb')
             self.friends_last_id = pickle.load(pkl_file)
             pkl_file.close()
