@@ -23,10 +23,15 @@ def sanitize(string):
 
 
 class Twitter(object):
-    def __init__(self, consumer_key, consumer_secret, access_key, access_secret):
+    def __init__(self, config):
         """
         Init the twitter api and a requests with the good crehencials
         """
+        consumer_key = config.get('main', 'consumer_key'),
+        consumer_secret = config.get('main', 'consumer_secret'),
+        access_key = config.get('main', 'access_key'),
+        access_secret = config.get('main', 'access_secret'))
+
         self.twitter = Twython(
                             consumer_key,
                             consumer_secret,
