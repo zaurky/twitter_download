@@ -5,10 +5,10 @@ import ConfigParser, os
 
 
 if __name__ == '__main__':
-    config = ConfigParser.ConfigParser()
-    config.read(['/etc/twitter_image.conf',
+    CONFIG = ConfigParser.ConfigParser()
+    CONFIG.read(['/etc/twitter_image.conf',
                  'twitter_image.conf',
                  os.path.expanduser('~/.twitter_image.conf')])
 
-    twitter = Twitter(config)
-    twitter.run()
+    TWITTER = Twitter(CONFIG)
+    TWITTER.run()
