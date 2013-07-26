@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import pexif
+from pexif import JpegFile
 
 from twython import Twython
 from twython.exceptions import TwythonRateLimitError
@@ -113,15 +114,11 @@ class Twitter(object):
 
         return img
 
-    def write_image(self, img, filepath):
-        """
-        Take a pexif image, write it in filepath and add a link for dailies
-        """
+    def prepare_dir(self, filepath):
+        mkpath(os.path.dirname(filepath))
+
+    def link_daily(self, filepath):
         directory = os.path.dirname(filepath)
-        mkpath(directory)
-
-        img.writeFile(filepath)
-
         if not os.path.exists(self.daily):
             mkpath(self.daily)
 
@@ -135,7 +132,21 @@ class Twitter(object):
         except OSError:
             pass
 
-        return True
+    def write_image(self, img, filepath):
+        """
+        Take a pexif image, write it in filepath and add a link for dailies
+        """
+        img.writeFile(filepath)
+
+    def write_data(self, data, filepath):
+        """
+        Take data, write it in filepath and add a link for dailies
+        """
+        directory = os.path.dirname(filepath)
+        mkpath(directory)
+
+        with open(filepath, 'wb') as fd:
+            fd.write(data)
 
     @staticmethod
     def get_images_from_status(status):
@@ -186,8 +197,16 @@ class Twitter(object):
                     if not data:
                         continue
 
-                    img = self.put_exif(data, status)
-                    self.write_image(img, filepath)
+                    self.prepare_dir(filepath)
+
+                    try:
+                        img = self.put_exif(data, status)
+                        self.write_image(img, filepath)
+                    except JpegFile.InvalidFile:
+                        print "could not put exif in %s" % media_id
+                        self.write_data(data, filepath)
+
+                    self.link_daily(filepath)
                     pic_nb += 1
 
             if pic_nb:
