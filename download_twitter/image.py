@@ -224,4 +224,3 @@ class Twitter(object):
         pkl_file = open(self.friends_last_id_file, 'wb')
         pickle.dump(self.friends_last_id, pkl_file)
         pkl_file.close()
-        #return object.__del__(self)
