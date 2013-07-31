@@ -4,7 +4,7 @@ import pexif
 from pexif import JpegFile
 
 from twython import Twython
-from twython.exceptions import TwythonRateLimitError
+from twython.exceptions import TwythonRateLimitError, TwythonError
 
 from requests.exceptions import ConnectionError
 from requests_oauthlib import OAuth1Session
@@ -174,16 +174,19 @@ class Twitter(object):
             return
 
         print "%d friends in list" % (len(friend_ids),)
-
-
         for friend_id in friend_ids:
             try:
                 statuses = self.get_statuses(
                                 friend_id,
                                 since_id=self.friends_last_id.get(friend_id))
+            except ConnectionError, err:
+                print "    connection error, didn't get statuses for %s" % friend_id
             except TwythonRateLimitError, err:
                 print err
                 sys.exit(-1)
+            except TwythonError, err:
+                print "Couln't find statuses for %s" % friend_id
+                continue
 
             if not statuses:
                 continue
