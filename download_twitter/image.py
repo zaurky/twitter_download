@@ -3,14 +3,9 @@
 import pexif
 from pexif import JpegFile
 
-from twython import Twython
-from twython.exceptions import TwythonRateLimitError, TwythonError
-
-from requests.exceptions import ConnectionError
-from requests_oauthlib import OAuth1Session
+from .api import API
 
 import os
-import sys
 import pickle
 from distutils.dir_util import mkpath
 from datetime import datetime
@@ -23,26 +18,12 @@ def sanitize(string):
     return unicode(string).encode('ascii', 'replace')
 
 
-class Twitter(object):
+class Twitter(API):
     def __init__(self, config):
         """
-        Init the twitter api and a requests with the good crehencials
+        Init the path we will need to download (and the API)
         """
-        consumer_key = config.get('main', 'consumer_key')
-        consumer_secret = config.get('main', 'consumer_secret')
-        access_key = config.get('main', 'access_key')
-        access_secret = config.get('main', 'access_secret')
-
-        self.twitter = Twython(
-                            consumer_key,
-                            consumer_secret,
-                            access_key,
-                            access_secret)
-        self.request = OAuth1Session(
-                            consumer_key,
-                            consumer_secret,
-                            access_key,
-                            access_secret)
+        API.__init__(self, config)
 
         self.data_dir = config.get('path', 'data_dir')
 
@@ -61,23 +42,6 @@ class Twitter(object):
         else:
             self.friends_last_id = {}
 
-    def get_statuses(self, friend_id, max_id=None, since_id=None):
-        """
-        Get all the status a friend published
-        """
-        statuses = self.twitter.get_user_timeline(
-                        user_id=friend_id,
-                        count=200,
-                        include_rts=1,
-                        max_id=max_id,
-                        since_id=since_id)
-
-        if len(statuses) == 200:
-            last = statuses[-1]['id']
-            statuses.extend(self.get_statuses(friend_id, max_id=last))
-
-        return statuses
-
     @staticmethod
     def should_get_image(_url, filepath):
         """
@@ -85,16 +49,6 @@ class Twitter(object):
         (does the file exists only right now)
         """
         return not os.path.exists(filepath)
-
-    def get_image(self, url):
-        """
-        Retrieve data from the url
-        """
-        try:
-            request = self.request.get(url)
-            return request.content
-        except ConnectionError:
-            print "    connection error, didn't get %s" % (url,)
 
     @staticmethod
     def put_exif(data, status):
@@ -167,33 +121,24 @@ class Twitter(object):
         """
         Run the twitter image downloader process
         """
-        try:
-            friend_ids = self.twitter.get_friends_ids()['ids']
-        except ConnectionError:
-            print "    connection error, didn't get friends_ids"
+        friend_ids = self.get_friends()
+        if not friend_ids:
             return
 
         print "%d friends in list" % (len(friend_ids),)
         for friend_id in friend_ids:
-            try:
-                statuses = self.get_statuses(
-                                friend_id,
-                                since_id=self.friends_last_id.get(friend_id))
-            except ConnectionError, err:
-                print "    connection error, didn't get statuses for %s" % friend_id
-            except TwythonRateLimitError, err:
-                print err
-                sys.exit(-1)
-            except TwythonError, err:
-                print "Couln't find statuses for %s" % friend_id
-                continue
+            since_id = self.friends_last_id.get(friend_id)
 
+            statuses = self.get_statuses_for_friend(friend_id, since_id)
             if not statuses:
                 continue
 
             username = statuses[0]['user']['screen_name'].replace('/', ' ')
 
             print "%s : %s" % (friend_id, username)
+            if since_id is None:
+                print "    * User seems new to me"
+
             print "    * %d status retrieved" % (len(statuses),)
 
             pic_nb = 0
