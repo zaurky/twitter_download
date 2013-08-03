@@ -18,12 +18,12 @@ def exception_handler(method):
         try:
             return method(*args, **kwargs)
         except ConnectionError, err:
-            print "    connection error, %s (%s, %s)" % (method, args, kargs)
+            print "    connection error, %s (%s, %s)" % (method, args, kwargs)
         except TwythonRateLimitError, err:
             print err
             sys.exit(-1)
         except TwythonError, err:
-            print "    error, %s (%s, %s)" % (method, args, kargs)
+            print "    error, %s (%s, %s)" % (method, args, kwargs)
 
     return _handle_exceptions
 
