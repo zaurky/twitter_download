@@ -79,18 +79,31 @@ class Twitter(API):
         if not os.path.exists(self.daily):
             mkpath(self.daily)
 
+        for _group_id, group_name in self.get_lists():
+            path = os.path.exists(os.path.join(self.daily, group_name))
+            print path
+            if not path:
+                mkpath(path)
+
     def link_daily(self, filepath):
         """
         Create a link between the newly download file and daily dir
         """
         directory = os.path.dirname(filepath)
+        list_name = os.path.basename(os.path.dirname(directory))
+
+        if list_name == os.path.basename(self.image_path):
+            list_name = ''
+
         try:
-            os.symlink(
-                filepath,
-                os.path.join(self.daily, '%s_%s' % (
-                        os.path.basename(directory),
-                        os.path.basename(filepath),
-                )))
+            link = os.path.join(self.daily,
+                                list_name,
+                                '%s_%s' % (
+                                    os.path.basename(directory),
+                                    os.path.basename(filepath),
+                                ))
+            print link
+            os.symlink(filepath, link)
         except OSError:
             pass
 
@@ -117,9 +130,9 @@ class Twitter(API):
         return [(media['id_str'], media['media_url'])
                 for media in status['entities'].get('media', [])]
 
-    def run(self,):
+    def get_list_content(self):
         """
-        Run the twitter image downloader process
+        Get list content and friends in list
         """
         list_content = {}
         friend_in_list = {}
@@ -131,15 +144,59 @@ class Twitter(API):
                     dict([(friend_id, list_name) for friend_id in friends]))
         print "got %d lists" % len(list_content)
         print list_content
+        return list_content, friend_in_list
+
+    def retrieve_image(self, path, media_id, media_url, status):
+        """
+        Retrieve the image
+        """
+        filepath = path + '/' + media_id + '.jpg'
+
+        if not self.should_get_image(media_url, filepath):
+            return False
+
+        data = self.get_image(media_url)
+        if not data:
+            return False
+
+        self.prepare_dir(filepath)
+
+        try:
+            img = self.put_exif(data, status)
+            self.write_image(img, filepath)
+        except JpegFile.InvalidFile:
+            print "could not put exif in %s" % media_id
+            self.write_data(data, filepath)
+
+        self.link_daily(filepath)
+        return True
+
+    def retrieve_all(self, statuses, path):
+        pic_nb = 0
+        for status in statuses:
+            for media_id, media_url in self.get_images_from_status(status):
+                if self.retrieve_image(path, media_id, media_url, status):
+                    pic_nb += 1
+
+        if pic_nb:
+            print "    * %s pics" % (pic_nb,)
+
+    def run(self,):
+        """
+        Run the twitter image downloader process
+        """
+        list_content, friend_in_list = self.get_list_content()
 
         friends = self.get_friends()
         print "%d friends in list" % (len(friends),)
+
         for friend_id, _friend_name in friends:
             since_id = self.friends_last_id.get(friend_id)
             is_in_list = friend_in_list.get(friend_id, '')
 
             statuses = self.get_statuses_for_friend(friend_id, since_id)
             if not statuses:
+                print "No new statuses for %s" % friend_id
                 continue
 
             username = statuses[0]['user']['screen_name'].replace('/', ' ')
@@ -152,34 +209,8 @@ class Twitter(API):
 
             print "    * %d status retrieved" % (len(statuses),)
 
-            pic_nb = 0
             path = os.path.join(self.image_path, is_in_list, username)
-
-            for status in statuses:
-                for media_id, media_url in self.get_images_from_status(status):
-                    filepath = path + '/' + media_id + '.jpg'
-
-                    if not self.should_get_image(media_url, filepath):
-                        continue
-
-                    data = self.get_image(media_url)
-                    if not data:
-                        continue
-
-                    self.prepare_dir(filepath)
-
-                    try:
-                        img = self.put_exif(data, status)
-                        self.write_image(img, filepath)
-                    except JpegFile.InvalidFile:
-                        print "could not put exif in %s" % media_id
-                        self.write_data(data, filepath)
-
-                    self.link_daily(filepath)
-                    pic_nb += 1
-
-            if pic_nb:
-                print "    * %s pics" % (pic_nb,)
+            self.retrieve_all(statuses, path)
 
             print "    * last status id is %s" % (statuses[0]['id'],)
             self.friends_last_id[friend_id] = statuses[0]['id']
