@@ -121,13 +121,22 @@ class Twitter(API):
         """
         Run the twitter image downloader process
         """
-        friend_ids = self.get_friends()
-        if not friend_ids:
-            return
+        list_content = {}
+        friend_in_list = {}
 
-        print "%d friends in list" % (len(friend_ids),)
-        for friend_id in friend_ids:
+        for list_id, list_name in self.get_lists():
+            friends = self.get_list_users(list_id)
+            list_content[list_name] = friends
+            friend_in_list.update(
+                    dict([(friend_id, list_name) for friend_id in friends]))
+        print "got %d lists" % len(list_content)
+        print list_content
+
+        friends = self.get_friends()
+        print "%d friends in list" % (len(friends),)
+        for friend_id, _friend_name in friends:
             since_id = self.friends_last_id.get(friend_id)
+            is_in_list = friend_in_list.get(friend_id, '')
 
             statuses = self.get_statuses_for_friend(friend_id, since_id)
             if not statuses:
@@ -135,14 +144,16 @@ class Twitter(API):
 
             username = statuses[0]['user']['screen_name'].replace('/', ' ')
 
-            print "%s : %s" % (friend_id, username)
+            print "%s : %s %s" % (friend_id,
+                                  username,
+                                  "[%s]" % is_in_list if is_in_list else '')
             if since_id is None:
                 print "    * User seems new to me"
 
             print "    * %d status retrieved" % (len(statuses),)
 
             pic_nb = 0
-            path = self.image_path + username
+            path = os.path.join(self.image_path, is_in_list, username)
 
             for status in statuses:
                 for media_id, media_url in self.get_images_from_status(status):

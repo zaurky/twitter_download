@@ -28,6 +28,28 @@ def exception_handler(method):
     return _handle_exceptions
 
 
+class Cache(object):
+    """ Container for cached values """
+
+
+def put_in_cache(method):
+    """
+    Handle cache for method we call often and which result shoul not change
+    """
+
+    @wraps(method)
+    def _cached_value(*args, **kwargs):
+        value = getattr(Cache, method.__name__, None)
+
+        if not value:
+            value = method(*args, **kwargs)
+            setattr(Cache, method.__name__, value)
+
+        return value
+
+    return _cached_value
+
+
 class API(object):
     """
     Twitter API class, init Twython and OAuth1Session
@@ -77,18 +99,38 @@ class API(object):
         """ Get all statuses since `since_id` for this friend """
         return self.get_statuses(friend_id, since_id=since_id)
 
+    @put_in_cache
     @exception_handler
     def get_friends(self):
-        """ Get all friends IDS """
-        return self.twitter.get_friends_ids()['ids']
+        """ Cached call - Get all friends (id, name) """
+        return [(user['id'], user['screen_name']) for user in
+                self.twitter.get_friends_list()['users']]
 
+    @put_in_cache
     @exception_handler
     def get_lists(self):
-        """ Get all user lists """
-        return [group['name'] for group in self.twitter.show_lists()]
+        """ Cached call - Get all our lists (id, name) """
+        return [(group['id'], group['name'])  for group in self.twitter.show_lists()]
 
     @exception_handler
     def get_list_users(self, list_id):
         """ Get all users id from a list """
         return [user['id'] for user in
-                api.twitter.get_list_members(list_id=list_id)['users']]
+                self.twitter.get_list_members(list_id=list_id)['users']]
+
+    @exception_handler
+    def put_user_in_list(self, list_name, user_name):
+        """
+        WARN : Need RW permissions
+        Put a user in the given list.
+        """
+        lists = self.get_lists()
+        list_id = [group[0] for group in lists if group[1] == list_name]
+
+        users = self.get_friends()
+        user_id = [user[0] for user in users if user[1] == user_name]
+
+        print "putting %s (%s) in list %s (%s)" % (
+               user_name, user_id, list_name, list_id)
+        self.twitter.create_list_members(list_id=list_id, user_id=user_id)
+        return True
