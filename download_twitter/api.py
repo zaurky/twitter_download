@@ -19,14 +19,15 @@ def put_in_cache(method):
 
     @wraps(method)
     def _cached_value(*args, **kwargs):
-        value = getattr(Cache, method.__name__, None)
+        if not args and not kwargs:
+            value = getattr(Cache, method.__name__, None)
 
-        if not value:
-            value = method(*args, **kwargs)
-            setattr(Cache, method.__name__, value)
+            if not value:
+                value = method(*args, **kwargs)
+                setattr(Cache, method.__name__, value)
 
-        return value
-
+            return value
+        return method(*args, **kwargs)
     return _cached_value
 
 
