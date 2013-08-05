@@ -80,9 +80,8 @@ class Twitter(API):
             mkpath(self.daily)
 
         for _group_id, group_name in self.get_lists():
-            path = os.path.exists(os.path.join(self.daily, group_name))
-            print path
-            if not path:
+            path = os.path.join(self.daily, group_name)
+            if not os.path.exists(path):
                 mkpath(path)
 
     def link_daily(self, filepath):
@@ -102,7 +101,6 @@ class Twitter(API):
                                     os.path.basename(directory),
                                     os.path.basename(filepath),
                                 ))
-            print link
             os.symlink(filepath, link)
         except OSError:
             pass
@@ -142,8 +140,7 @@ class Twitter(API):
             list_content[list_name] = friends
             friend_in_list.update(
                     dict([(friend_id, list_name) for friend_id in friends]))
-        print "got %d lists" % len(list_content)
-        print list_content
+        print "got %d lists %s" % (len(list_content), ', '.join([name for name in list_content]))
         return list_content, friend_in_list
 
     def retrieve_image(self, path, media_id, media_url, status):
@@ -196,7 +193,6 @@ class Twitter(API):
 
             statuses = self.get_statuses_for_friend(friend_id, since_id)
             if not statuses:
-                print "No new statuses for %s" % friend_id
                 continue
 
             username = statuses[0]['user']['screen_name'].replace('/', ' ')
