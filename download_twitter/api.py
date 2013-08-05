@@ -95,6 +95,15 @@ class API(object):
         return [(user['id'], user['screen_name']) for user in
                 self.twitter.get_friends_list()['users']]
 
+    @exception_handler
+    def get_list(self, list_id=None, list_name=None):
+        assert list_id or list_name, 'You must give a name or id'
+        lists = self.get_lists()
+        if list_name:
+            return [group for group in lists if group[1] == list_name][0]
+        else:
+            return [group for group in lists if group[0] == list_id][0]
+
     @put_in_cache
     @exception_handler
     def get_lists(self):
