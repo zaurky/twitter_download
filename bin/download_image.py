@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-from download_twitter.image import Twitter
+from download_twitter.twitter import Twitter
 import ConfigParser, os
 
 
