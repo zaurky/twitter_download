@@ -80,6 +80,14 @@ class API(object):
         """ Get all statuses since `since_id` for this friend """
         return self.get_statuses(friend_id, since_id=since_id)
 
+    @exception_handler
+    def get_friend(self, user_id=None, user_name=None):
+        """ Get a friend based on it's id or name """
+        assert user_id or user_name, 'You must give a name or id'
+        user = self.twitter.show_user(friend_id=user_id,
+                                      screen_name=user_name)
+        return user['id'], user['screen_name']
+
     @put_in_cache
     @exception_handler
     def get_friends(self):
