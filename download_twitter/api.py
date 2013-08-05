@@ -1,7 +1,5 @@
 #!/usr/bin/python
 
-from functools import wraps
-
 from twython import Twython
 from requests_oauthlib import OAuth1Session
 
@@ -75,6 +73,7 @@ class API(object):
 
     @exception_handler
     def get_list(self, list_id=None, list_name=None):
+        """ Get a list based on it's id or name """
         assert list_id or list_name, 'You must give a name or id'
         lists = self.get_lists()
         if list_name:
