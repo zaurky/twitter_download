@@ -68,8 +68,15 @@ class API(object):
     @exception_handler
     def get_friends(self):
         """ Cached call - Get all friends (id, name) """
-        return [(user['id'], user['screen_name']) for user in
-                self.twitter.get_friends_list()['users']]
+        cursor = -1
+        friends = []
+
+        while cursor:
+            lfriends = self.twitter.get_friends_list(cursor=cursor)
+            cursor = lfriends['next_cursor']
+            friends.extend(lfriends['users'])
+
+        return [(user['id'], user['screen_name']) for user in friends]
 
     @exception_handler
     def get_list(self, list_id=None, list_name=None):
