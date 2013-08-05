@@ -122,13 +122,24 @@ class API(object):
         WARN : Need RW permissions
         Put a user in the given list.
         """
-        lists = self.get_lists()
-        list_id = [group[0] for group in lists if group[1] == list_name]
-
-        users = self.get_friends()
-        user_id = [user[0] for user in users if user[1] == user_name]
+        list_id, _list_name = self.get_list(list_name=list_name)
+        user_id, _user_name = self.get_friend(user_name=user_name)
 
         print "putting %s (%s) in list %s (%s)" % (
                user_name, user_id, list_name, list_id)
         self.twitter.create_list_members(list_id=list_id, user_id=user_id)
+        return True
+
+    @exception_handler
+    def del_user_from_list(self, list_name, user_name):
+        """
+        WARN : Need RW permissions
+        Remove a user from the given list.
+        """
+        list_id, _list_name = self.get_list(list_name=list_name)
+        user_id, _user_name = self.get_friend(user_name=user_name)
+
+        print "putting %s (%s) in list %s (%s)" % (
+               user_name, user_id, list_name, list_id)
+        self.twitter.delete_list_member(list_id=list_id, user_id=user_id)
         return True
