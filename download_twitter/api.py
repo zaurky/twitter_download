@@ -30,6 +30,16 @@ class API(object):
                             consumer_secret,
                             access_key,
                             access_secret)
+
+        if config.get('debug', 'twitter_calls', False):
+            self.twitter._true_request = self.twitter._request
+
+            def debug_request(url, *args, **kwargs):
+                print "%s %s" % (url, kwargs)
+                return self.twitter._true_request(url, *args, **kwargs)
+
+            self.twitter._request = debug_request
+
     @exception_handler
     def get_image(self, url):
         """ Retrieve data from the url """
