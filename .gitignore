@@ -1,5 +1,5 @@
 workspace
 *.pyc
-friends_last_id.pkl*
+*.pkl*
 images
 *.swp
