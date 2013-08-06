@@ -212,7 +212,7 @@ class Twitter(API):
             print "    * last status id is %s" % (statuses[0]['id'],)
             self.friends_last_id[friend_id] = statuses[0]['id']
 
-    def get_list_content(self):
+    def retrieve_list_content(self):
         """
         Get list content and friends in list
         """
@@ -234,6 +234,6 @@ class Twitter(API):
             self.friends[key] = value
 
     def refresh_lists(self):
-        for key, value in self.get_list_content().items():
+        for key, value in self.retrieve_list_content().items():
             self.listcontent[key] = value
 
