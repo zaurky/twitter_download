@@ -4,7 +4,7 @@ import pexif
 from pexif import JpegFile
 
 from .api import API
-from .cache import LastId, FriendList
+from .cache import LastId, FriendList, ListContent
 
 import os
 import pickle
@@ -37,7 +37,7 @@ class Twitter(API):
 
         self.friends_last_id = LastId(config)
         self.friends = FriendList(config)
-
+        self.listcontent = ListContent(config)
 
     @staticmethod
     def should_get_image(_url, filepath):
@@ -129,16 +129,8 @@ class Twitter(API):
         """
         Get list content and friends in list
         """
-        list_content = {}
-        friend_in_list = {}
-
-        for list_id, list_name in self.get_lists():
-            friends = self.get_list_users(list_id)
-            list_content[list_name] = friends
-            friend_in_list.update(
-                    dict([(friend_id, list_name) for friend_id in friends]))
-        print "got %d lists %s" % (len(list_content), ', '.join([name for name in list_content]))
-        return list_content, friend_in_list
+        return (self.listcontent['list_content'],
+                self.listcontent['friend_in_list'])
 
     def retrieve_image(self, path, media_id, media_url, status):
         """
@@ -180,6 +172,7 @@ class Twitter(API):
         Run the twitter image downloader process
         """
         list_content, friend_in_list = self.get_list_content()
+        print "got %d lists %s" % (len(list_content), ', '.join([name for name in list_content]))
 
         print "%d friends in list" % (len(self.friends),)
 
