@@ -3,6 +3,7 @@
 import os
 from functools import wraps
 import pickle
+from types import DictType
 
 
 class Cache(object):
@@ -28,27 +29,68 @@ def put_in_cache(method):
     return _cached_value
 
 
-class LastId(object):
+class PklDict(DictType):
+    """ Load a pkl file in an dict and give access to it """
+
+    def __init__(self, filepath):
+        self.filepath = filepath
+
+        if os.path.exists(self.filepath):
+            print "retrieve %s" % self.filepath
+            pkl_file = open(self.filepath, 'rb')
+            self._internal = pickle.load(pkl_file)
+            pkl_file.close()
+        else:
+            self._internal = {}
+
+    def __len__(self):
+        return len(self._internal)
+
+    def __getitem__(self, key):
+        return self._internal.__getitem__(key)
+
+    def __setitem__(self, key, value):
+        return self._internal.__setitem__(key,  value)
+
+    def __delitem__(self, key):
+        return self._internal.__delitem__(key)
+
+    def __iter__(self):
+        return self._internal.__iter__()
+
+    def get(self, key, value=None):
+        return self._internal.get(key, value)
+
+    def __repr__(self):
+        return self._internal.__repr__()
+
+    def __del__(self):
+        """ backup internal into the pkl file at the end """
+        print "backup %s"% self.filepath
+        pkl_file = open(self.filepath, 'wb')
+        pickle.dump(self._internal, pkl_file)
+        pkl_file.close()
+
+
+class LastId(PklDict):
     """ Load the last id file and save it when done """
 
     def __init__(self, config):
         """ Open or create the last id file """
-        self.friends_last_id_file = config.get('path', 'friends_last_id_file')
+        PklDict.__init__(self, config.get('path', 'friends_last_id_file'))
 
-        if os.path.exists(self.friends_last_id_file):
-            print "retrieve %s" % self.friends_last_id_file
-            pkl_file = open(self.friends_last_id_file, 'rb')
-            self.friends_last_id = pickle.load(pkl_file)
-            pkl_file.close()
-        else:
-            self.friends_last_id = {}
 
-    def __del__(self):
-        """
-        When we init, we read the friend last id list from a file, we modify
-        it all the process long, we have to backup it at the end.
-        """
-        print "backup %s"% self.friends_last_id_file
-        pkl_file = open(self.friends_last_id_file, 'wb')
-        pickle.dump(self.friends_last_id, pkl_file)
-        pkl_file.close()
+class FriendList(PklDict):
+    """ Load the friend list file and save it when done """
+
+    def __init__(self, config):
+        """ Open or create the friend list file """
+        PklDict.__init__(self, config.get('path', 'friends_list_file'))
+
+
+class ListContent(PklDict):
+    """ Load the list content file and save it when done """
+
+    def __init__(self, config):
+        """ Open or create the list content file """
+        PklDict.__init__(self, config.get('path', 'list_content_file'))
