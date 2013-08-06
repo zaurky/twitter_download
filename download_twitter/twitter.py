@@ -4,6 +4,7 @@ import pexif
 from pexif import JpegFile
 
 from .api import API
+from .cache import LastId, FriendList
 
 import os
 import pickle
@@ -34,13 +35,9 @@ class Twitter(API):
         self.daily = '%s%s/' % (self.daily_path,
             datetime.now().strftime('%Y%m%d'))
 
-        if os.path.exists(self.friends_last_id_file):
-            print "retrieve %s" % self.friends_last_id_file
-            pkl_file = open(self.friends_last_id_file, 'rb')
-            self.friends_last_id = pickle.load(pkl_file)
-            pkl_file.close()
-        else:
-            self.friends_last_id = {}
+        self.friends_last_id = LastId(config)
+        self.friends = FriendList(config)
+
 
     @staticmethod
     def should_get_image(_url, filepath):
@@ -184,10 +181,9 @@ class Twitter(API):
         """
         list_content, friend_in_list = self.get_list_content()
 
-        friends = self.get_friends()
-        print "%d friends in list" % (len(friends),)
+        print "%d friends in list" % (len(self.friends),)
 
-        for friend_id, _friend_name in friends:
+        for friend_id in self.friends:
             since_id = self.friends_last_id.get(friend_id)
             is_in_list = friend_in_list.get(friend_id, '')
 
@@ -210,13 +206,3 @@ class Twitter(API):
 
             print "    * last status id is %s" % (statuses[0]['id'],)
             self.friends_last_id[friend_id] = statuses[0]['id']
-
-    def __del__(self):
-        """
-        When we init, we read the friend last id list from a file, we modify
-        it all the process long, we have to backup it at the end.
-        """
-        print "backup %s"% self.friends_last_id_file
-        pkl_file = open(self.friends_last_id_file, 'wb')
-        pickle.dump(self.friends_last_id, pkl_file)
-        pkl_file.close()
