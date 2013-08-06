@@ -31,7 +31,7 @@ class API(object):
                             access_key,
                             access_secret)
 
-        if config.get('debug', 'twitter_calls', False):
+        if config.getboolean('debug', 'twitter_calls'):
             self.twitter._true_request = self.twitter._request
 
             def debug_request(url, *args, **kwargs):
