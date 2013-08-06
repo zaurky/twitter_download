@@ -76,7 +76,7 @@ class Twitter(API):
         if not os.path.exists(self.daily):
             mkpath(self.daily)
 
-        for _group_id, group_name in self.get_lists():
+        for group_name in self.listcontent['list_content']:
             path = os.path.join(self.daily, group_name)
             if not os.path.exists(path):
                 mkpath(path)
@@ -173,7 +173,6 @@ class Twitter(API):
         """
         list_content, friend_in_list = self.get_list_content()
         print "got %d lists %s" % (len(list_content), ', '.join([name for name in list_content]))
-
         print "%d friends in list" % (len(self.friends),)
 
         for friend_id in self.friends:
