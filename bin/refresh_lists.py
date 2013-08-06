@@ -32,7 +32,9 @@ if __name__ == '__main__':
     API = API(CONFIG)
 
     FRIENDLIST = FriendList(CONFIG)
-    FRIENDLIST.update(dict(API.get_friends()))
+    for key, value in API.get_friends():
+        FRIENDLIST[key] = value
 
     LISTCONTENT = ListContent(CONFIG)
-    LISTCONTENT.update(get_list_content(API))
+    for key, value in get_list_content(API).items():
+        LISTCONTENT[key] = value
