@@ -211,3 +211,29 @@ class Twitter(API):
 
             print "    * last status id is %s" % (statuses[0]['id'],)
             self.friends_last_id[friend_id] = statuses[0]['id']
+
+    def get_list_content(self):
+        """
+        Get list content and friends in list
+        """
+        list_content = {}
+        friend_in_list = {}
+
+        for list_id, list_name in self.get_lists():
+            friends = self.get_list_users(list_id)
+            list_content[list_name] = friends
+            friend_in_list.update(
+                    dict([(friend_id, list_name) for friend_id in friends]))
+        return {
+            'list_content': list_content,
+            'friend_in_list': friend_in_list,
+        }
+
+    def refresh_friend(self):
+        for key, value in self.get_friends():
+            self.friends[key] = value
+
+    def refresh_lists(self):
+        for key, value in self.get_list_content().items():
+            self.listcontent[key] = value
+
