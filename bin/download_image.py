@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
-from download_twitter.twitter import Twitter
 import ConfigParser, os
+from download_twitter.twitter import Twitter
 
 
 if __name__ == '__main__':
