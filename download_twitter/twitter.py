@@ -35,6 +35,8 @@ class Twitter(API):
         self.daily = '%s%s/' % (self.daily_path,
             datetime.now().strftime('%Y%m%d'))
 
+        self.retweet = 'retweet'
+
         self.friends_last_id = LastId(config)
         self.friends = FriendList(config)
         self.listcontent = ListContent(config)
@@ -86,9 +88,17 @@ class Twitter(API):
         Create a link between the newly download file and daily dir
         """
         directory = os.path.dirname(filepath)
-        list_name = os.path.basename(os.path.dirname(directory))
+        first_level = os.path.basename(directory)
+        second_level = os.path.basename(os.path.dirname(directory))
+        third_level = os.path.basename(os.path.dirname(os.path.dirname(directory)))
+        retweet = first_level == self.retweet
 
-        if list_name == os.path.basename(self.image_path):
+        if retweet:
+            first_level = second_level
+            second_level = third_level
+
+        list_name = second_level
+        if second_level == os.path.basename(self.image_path.rstrip('/')):
             list_name = ''
 
         try:
@@ -136,7 +146,10 @@ class Twitter(API):
         """
         Retrieve the image
         """
-        filepath = path + '/' + media_id + '.jpg'
+        retweet = self.retweet if status['retweeted'] else ''
+        filepath = os.path.join(path, retweet, media_id + '.jpg')
+        if retweet:
+            print "image %s is a retweet" % media_id
 
         if not self.should_get_image(media_url, filepath):
             return False
