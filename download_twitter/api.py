@@ -1,10 +1,29 @@
 #!/usr/bin/python
 
+from functools import wraps
 from twython import Twython
 from requests_oauthlib import OAuth1Session
 
 from .exception import exception_handler
 from .cache import put_in_cache
+
+
+def paginate(extract, ret_filter):
+    def decorator(method):
+        @wraps(method)
+        def _paginate(*args, **kwargs):
+            cursor = -1
+            data = []
+
+            while cursor:
+                kwargs['cursor'] = cursor
+                ldata = method(*args, **kwargs)
+                cursor = ldata['next_cursor']
+                data.extend(ldata[extract])
+
+            return [[datum[key] for key in ret_filter] for datum in data]
+        return _paginate
+    return decorator
 
 
 class API(object):
@@ -76,17 +95,10 @@ class API(object):
 
     @put_in_cache
     @exception_handler
-    def get_friends(self):
+    @paginate('users', ['id', 'screen_name'])
+    def get_friends(self, cursor=-1):
         """ Cached call - Get all friends (id, name) """
-        cursor = -1
-        friends = []
-
-        while cursor:
-            lfriends = self.twitter.get_friends_list(cursor=cursor)
-            cursor = lfriends['next_cursor']
-            friends.extend(lfriends['users'])
-
-        return [(user['id'], user['screen_name']) for user in friends]
+        return self.twitter.get_friends_list(cursor=cursor)
 
     @exception_handler
     def get_list(self, list_id=None, list_name=None):
@@ -105,17 +117,10 @@ class API(object):
         return [(group['id'], group['name'])  for group in self.twitter.show_lists()]
 
     @exception_handler
-    def get_list_users(self, list_id):
+    @paginate('users', ['id', 'screen_name'])
+    def get_list_users(self, list_id, cursor=-1):
         """ Get all users id from a list """
-        cursor = -1
-        friends = []
-
-        while cursor:
-            lfriends = self.twitter.get_list_members(list_id=list_id, cursor=cursor)
-            cursor = lfriends['next_cursor']
-            friends.extend(lfriends['users'])
-
-        return [user['id'] for user in friends]
+        return self.twitter.get_list_members(list_id=list_id, cursor=cursor)
 
     @exception_handler
     def put_user_in_list(self, list_name, user_name):
@@ -153,8 +158,8 @@ class API(object):
         friend_in_list = {}
 
         for list_id, list_name in self.get_lists():
-            friends = self.get_list_users(list_id)
-            list_content[list_name] = friends
+            friends = dict(self.get_list_users(list_id))
+            list_content[list_name] = friends.keys()
             friend_in_list.update(
                     dict([(friend_id, list_name) for friend_id in friends]))
         return {
