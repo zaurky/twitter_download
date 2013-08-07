@@ -144,3 +144,20 @@ class API(object):
                user_name, user_id, list_name, list_id)
         self.twitter.delete_list_member(list_id=list_id, user_id=user_id)
         return True
+
+    def retrieve_list_content(self):
+        """
+        Get list content and friends in list
+        """
+        list_content = {}
+        friend_in_list = {}
+
+        for list_id, list_name in self.get_lists():
+            friends = self.get_list_users(list_id)
+            list_content[list_name] = friends
+            friend_in_list.update(
+                    dict([(friend_id, list_name) for friend_id in friends]))
+        return {
+            'list_content': list_content,
+            'friend_in_list': friend_in_list,
+        }
