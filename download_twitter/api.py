@@ -107,8 +107,15 @@ class API(object):
     @exception_handler
     def get_list_users(self, list_id):
         """ Get all users id from a list """
-        return [user['id'] for user in
-                self.twitter.get_list_members(list_id=list_id)['users']]
+        cursor = -1
+        friends = []
+
+        while cursor:
+            lfriends = self.twitter.get_list_members(list_id=list_id, cursor=cursor)
+            cursor = lfriends['next_cursor']
+            friends.extend(lfriends['users'])
+
+        return [user['id'] for user in friends]
 
     @exception_handler
     def put_user_in_list(self, list_name, user_name):
