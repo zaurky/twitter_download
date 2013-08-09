@@ -166,3 +166,6 @@ class API(object):
             'list_content': list_content,
             'friend_in_list': friend_in_list,
         }
+
+    def __repr__(self):
+        return '<API>'

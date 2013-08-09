@@ -220,3 +220,5 @@ class Twitter(API):
         for key, value in self.retrieve_list_content().items():
             self.listcontent[key] = value
 
+    def __repr__(self):
+        return '<Twitter>'
