@@ -145,7 +145,7 @@ class API(object):
         list_id, _list_name = self.get_list(list_name=list_name)
         user_id, _user_name = self.get_friend(user_name=user_name)
 
-        print "putting %s (%s) in list %s (%s)" % (
+        print "removing %s (%s) from list %s (%s)" % (
                user_name, user_id, list_name, list_id)
         self.twitter.delete_list_member(list_id=list_id, user_id=user_id)
         return True
