@@ -188,6 +188,8 @@ class Twitter(API):
         if pic_nb:
             print "    * %s pics" % (pic_nb,)
 
+        return pic_nb
+
     def run(self,):
         """
         Run the twitter image downloader process
@@ -195,6 +197,9 @@ class Twitter(API):
         list_content, friend_in_list = self.get_list_content()
         print "got %d lists %s" % (len(list_content), ', '.join([name for name in list_content]))
         print "%d friends in list" % (len(self.friends),)
+
+        total_pic = 0
+        not_affected_friends = []
 
         for friend_id in self.friends:
             since_id = self.friends_last_id.get(friend_id)
@@ -209,16 +214,26 @@ class Twitter(API):
             print "%s : %s %s" % (friend_id,
                                   username,
                                   "[%s]" % is_in_list if is_in_list else '')
+            if not is_in_list:
+                not_affected_friends.append(username)
+
             if since_id is None:
                 print "    * User seems new to me"
 
             print "    * %d status retrieved" % (len(statuses),)
 
             path = os.path.join(self.image_path, is_in_list, username)
-            self.retrieve_all(statuses, path)
+            total_pic += self.retrieve_all(statuses, path)
 
             print "    * last status id is %s" % (statuses[0]['id'],)
             self.friends_last_id[friend_id] = statuses[0]['id']
+
+        if total_pic:
+            print "Got %d images" % total_pic
+
+        if not_affected_friends:
+            print "Thoses friends are not in a group %s" % (
+                    ', '.join(not_affected_friends))
 
     def refresh_friend(self):
         for key, value in self.get_friends():
