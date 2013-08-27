@@ -42,6 +42,12 @@ class Twitter(API):
         self.listcontent = ListContent(config)
 
     @staticmethod
+    def _is_retweet(status):
+        return ('retweeted_status' in status
+                and status['retweeted_status']['user']['screen_name']
+                    != status['user']['screen_name'])
+
+    @staticmethod
     def should_get_image(_url, filepath):
         """
         Should we get this image demending on several considerations
@@ -146,17 +152,19 @@ class Twitter(API):
         """
         Retrieve the image
         """
-        retweet = self.retweet if status['retweeted'] else ''
+        retweet = self.retweet if self._is_retweet(status) else ''
         filepath = os.path.join(path, retweet, media_id + '.jpg')
-        if retweet:
-            print "image %s is a retweet" % media_id
-
         if not self.should_get_image(media_url, filepath):
+            print "%s %s exists" % ('retweet' if retweet else 'image', media_id)
             return False
 
         data = self.get_image(media_url)
         if not data:
+            print "%s %s is empty" % ('retweet' if retweet else 'image', media_id)
             return False
+
+        if retweet:
+            print "image %s is a retweet" % media_id
 
         self.prepare_dir(filepath)
 
