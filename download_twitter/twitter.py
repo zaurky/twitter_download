@@ -1,10 +1,11 @@
 #!/usr/bin/python
 
+import operator
 import pexif
 from pexif import JpegFile
 
 from .api import API
-from .cache import LastId, FriendList, ListContent
+from .cache import LastId, FriendList, ListContent, AllTweets
 
 import os
 import pickle
@@ -40,6 +41,7 @@ class Twitter(API):
         self.friends_last_id = LastId(config)
         self.friends = FriendList(config)
         self.listcontent = ListContent(config)
+        self.tweets = AllTweets(config)
 
     @staticmethod
     def _is_retweet(status):
