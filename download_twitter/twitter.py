@@ -245,5 +245,50 @@ class Twitter(API):
         for key, value in self.retrieve_list_content().items():
             self.listcontent[key] = value
 
+    def _simplify_tweet(self, tweet):
+        status = {
+            'created_at': tweet['created_at'],
+            'id': tweet['id'],
+            'text': tweet['text'],
+            'user': {
+                'screen_name': tweet['user']['screen_name'],
+                'name': tweet['user']['name'],
+            },
+        }
+        if 'media' in tweet['entities']:
+            status['entities'] = {
+                'media': tweet['entities']['media'],
+            }
+        status['retweet'] = self._is_retweet(tweet)
+        return status
+
+    def cache_all_friend_tweets(self, friend_id):
+        last = None
+        statuses = []
+        if friend_id in self.tweets:
+            statuses = self.tweets[friend_id]
+            last = max(statuses, key =operator.itemgetter('id'))['id']
+
+        tweets = self.get_statuses_for_friend(friend_id, last)
+        if not tweets:
+            return
+
+        print "%s friend has %d statuses %s" % (
+                friend_id, len(tweets),
+                'since %s' % last if last else '')
+
+        statuses.update([self._simplify_tweet(tweet) for tweet in tweets])
+
+        self.tweets[friend_id] = statuses
+
+    def cache_all_friends_tweets(self):
+        count_treated = 0
+        for friend_id in [str(key) for key in self.friends]:
+            self.cache_all_friend_tweets(friend_id)
+            self.tweets.free(friend_id)
+            count_treated += 1
+
+        return count_treated
+
     def __repr__(self):
         return '<Twitter>'
