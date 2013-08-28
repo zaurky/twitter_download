@@ -2,6 +2,7 @@
 
 import sys
 from functools import wraps
+from datetime import datetime
 
 from twython.exceptions import (TwythonRateLimitError,
                                 TwythonError,
@@ -30,6 +31,7 @@ def exception_handler(method):
             print "    connection error, %s" % display_method(method, args, kwargs)
         except TwythonRateLimitError, err:
             print err
+            print "at %s" % datetime.now()
             sys.exit(-1)
         except TwythonAuthError, err:
             print "    auth error, %s" % display_method(method, args, kwargs)
