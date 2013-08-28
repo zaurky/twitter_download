@@ -1,6 +1,8 @@
 #!/usr/bin/python
 
 import os
+from os.path import isfile
+
 from functools import wraps
 import pickle
 from types import DictType
@@ -94,3 +96,78 @@ class ListContent(PklDict):
     def __init__(self, config):
         """ Open or create the list content file """
         PklDict.__init__(self, config.get('path', 'list_content_file'))
+
+
+class MultiPkl(DictType):
+    def __init__(self, filepath):
+        self.filepath = filepath
+        self._loaded = {}
+        self._modified = set()
+
+    def _filenames(self, key):
+        return os.path.join(self.filepath, "%s" % key)
+
+    def __list_files(self):
+        mypath = self.filepath
+        return [f for f in os.listdir(mypath) if isfile(os.path.join(mypath, f))]
+
+    def __len__(self):
+        return len(self.__list_files())
+
+    def __getitem__(self, key):
+        keyfile = self._filenames(key)
+        if not os.path.exists(keyfile):
+            raise KeyError('%s does not exists' % key)
+
+        if key not in self._loaded:
+            print "retrieve %s" % keyfile
+            pkl_file = open(keyfile, 'rb')
+            self._loaded[key] = pickle.load(pkl_file)
+            pkl_file.close()
+
+        return self._loaded[key]
+
+    def __setitem__(self, key, value):
+        self._loaded[key] = value
+        self._modified.add(key)
+
+    def __delitem__(self, key):
+        raise NotImplemented('cant del on MultiPkl right now')
+
+    def __iter__(self):
+        return self.__list_files()
+
+    def get(self, key, value=None):
+        try:
+            return self.__getitem__(key)
+        except KeyError:
+            pass
+
+        return value
+
+    def free(self, key):
+        if key in self._modified:
+            keyfile = self._filenames(key)
+            print "backup %s"% keyfile
+            pkl_file = open(keyfile, 'wb')
+            pickle.dump(self._loaded[key], pkl_file)
+            pkl_file.close()
+        else:
+            self._loaded.pop(key)
+        self._modified.discard(key)
+
+    def __contains__(self, key):
+        return key in self.__list_files()
+
+    def __repr__(self):
+        return '{%s}' % ', '.join(self.__list_files())
+
+    def __del__(self):
+        for key in self._modified:
+            self.free(key)
+
+
+class AllTweets(MultiPkl):
+    def __init__(self, config):
+        """ Open or create the all tweets dict """
+        MultiPkl.__init__(self, config.get('path', 'tweets_dir'))
