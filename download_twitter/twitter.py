@@ -142,40 +142,23 @@ class Twitter(API):
         except OSError:
             pass
 
-    @staticmethod
-    def write_image(img, filepath):
-        """
-        Take a pexif image, write it in filepath and add a link for dailies
-        """
-        img.writeFile(filepath)
-
-    @staticmethod
-    def write_data(data, filepath):
-        """
-        Take data, write it in filepath and add a link for dailies
-        """
-        with open(filepath, 'wb') as fdesc:
-            fdesc.write(data)
-
-    @staticmethod
-    def get_images_from_status(status):
-        """
-        Extract medias from a twitter status
-        """
-        return [(media['id_str'], media['media_url'])
-                for media in status['entities'].get('media', [])]
+    def write_data(self, media_id, data, status, filepath):
+        """ write image data and exif when possible """
+        try:
+            img = self.put_exif(data, status)
+            img.writeFile(filepath)
+        except JpegFile.InvalidFile:
+            print "      could not put exif in %s" % media_id
+            with open(filepath, 'wb') as fdesc:
+                fdesc.write(data)
 
     def get_list_content(self):
-        """
-        Get list content and friends in list
-        """
+        """ Get list content and friends in list """
         return (self.listcontent['list_content'],
                 self.listcontent['friend_in_list'])
 
     def retrieve_image(self, path, media_id, media_url, status):
-        """
-        Retrieve the image
-        """
+        """ Retrieve the image """
         retweet = self._retweet if is_retweet(status) else ''
         filepath = os.path.join(path, retweet, media_id + '.jpg')
         if not self.should_get_image(media_url, filepath):
@@ -196,13 +179,7 @@ class Twitter(API):
 
         self.prepare_dir(filepath)
 
-        try:
-            img = self.put_exif(data, status)
-            self.write_image(img, filepath)
-        except JpegFile.InvalidFile:
-            print "      could not put exif in %s" % media_id
-            self.write_data(data, filepath)
-
+        self.write_data(media_id, data, status, filepath)
         self.link_daily(filepath)
         return True
 
