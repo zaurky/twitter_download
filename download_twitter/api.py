@@ -34,6 +34,8 @@ class API(object):
 
     def __init__(self, config):
         """ Init the twitter api and a requests with the good crehencials """
+        self._config = config
+
         consumer_key = config.get('main', 'consumer_key')
         consumer_secret = config.get('main', 'consumer_secret')
         access_key = config.get('main', 'access_key')
