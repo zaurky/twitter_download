@@ -16,12 +16,11 @@ from datetime import datetime
 
 
 def sanitize(string):
-    """
-    Remove all non ascii chars to be able to put the string in exif
-    """
+    """ Remove all non ascii chars to be able to put the string in exif """
     return unicode(string).encode('ascii', 'replace')
 
 
+## status treatments
 def is_retweet(status):
     """ says if a status is a retweet or not """
     return ('retweeted_status' in status
@@ -29,31 +28,35 @@ def is_retweet(status):
                 != status['user']['screen_name'])
 
 
-def simplify_tweet(tweet):
+def simplify_status(status):
     """ only get the information we use from a status """
-    status = {
-        'created_at': tweet['created_at'],
-        'id': tweet['id'],
-        'text': tweet['text'],
+    ret = {
+        'created_at': status['created_at'],
+        'id': status['id'],
+        'text': status['text'],
         'user': {
-            'screen_name': tweet['user']['screen_name'],
-            'name': tweet['user']['name'],
+            'screen_name': status['user']['screen_name'],
+            'name': status['user']['name'],
         },
     }
-    if 'media' in tweet['entities']:
-        status['entities'] = {
-            'media': tweet['entities']['media'],
+    if 'media' in status['entities']:
+        ret['entities'] = {
+            'media': status['entities']['media'],
         }
-    status['retweet'] = is_retweet(tweet)
-    return status
+    ret['restatus'] = is_retweet(status)
+    return ret
+
+
+def get_images_from_status(status):
+    """ Extract medias from a twitter status """
+    return [(media['id_str'], media['media_url'])
+            for media in status['entities'].get('media', [])]
 
 
 class Twitter(API):
     """ add a layer over the twitter api to implement advanced behaviours """
     def __init__(self, config):
-        """
-        Init the path we will need to download (and the API)
-        """
+        """ Init the path we will need to download (and the API) """
         API.__init__(self, config)
 
         self._image_path = "%s/" % config.get('path', 'image_path').rstrip('/')
@@ -112,9 +115,7 @@ class Twitter(API):
                 mkpath(path)
 
     def link_daily(self, filepath):
-        """
-        Create a link between the newly download file and daily dir
-        """
+        """ Create a link between the newly download file and daily dir """
         directory = os.path.dirname(filepath)
         first_level = os.path.basename(directory)
 
@@ -187,7 +188,7 @@ class Twitter(API):
         """ loop over all the statuses and call `retrieve_image` on each """
         pic_nb = 0
         for status in statuses:
-            for media_id, media_url in self.get_images_from_status(status):
+            for media_id, media_url in get_images_from_status(status):
                 if self.retrieve_image(path, media_id, media_url, status):
                     pic_nb += 1
 
@@ -197,9 +198,7 @@ class Twitter(API):
         return pic_nb
 
     def run(self,):
-        """
-        Run the twitter image downloader process
-        """
+        """ Run the twitter image downloader process """
         list_content, friend_in_list = self.get_list_content()
         print "got %d lists %s" % (
                 len(list_content),
@@ -269,7 +268,7 @@ class Twitter(API):
                 friend_id, len(tweets),
                 'since %s' % last if last else '')
 
-        statuses.extend([simplify_tweet(tweet) for tweet in tweets])
+        statuses.extend([simplify_status(tweet) for tweet in tweets])
 
         self.tweets[friend_id] = statuses
         return True
