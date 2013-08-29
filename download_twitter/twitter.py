@@ -1,4 +1,7 @@
 #!/usr/bin/python
+"""
+Twitter module
+"""
 
 import operator
 import pexif
@@ -8,7 +11,6 @@ from .api import API
 from .cache import LastId, FriendList, ListContent, AllTweets
 
 import os
-import pickle
 from distutils.dir_util import mkpath
 from datetime import datetime
 
@@ -20,34 +22,52 @@ def sanitize(string):
     return unicode(string).encode('ascii', 'replace')
 
 
+def is_retweet(status):
+    """ says if a status is a retweet or not """
+    return ('retweeted_status' in status
+            and status['retweeted_status']['user']['screen_name']
+                != status['user']['screen_name'])
+
+
+def simplify_tweet(tweet):
+    """ only get the information we use from a status """
+    status = {
+        'created_at': tweet['created_at'],
+        'id': tweet['id'],
+        'text': tweet['text'],
+        'user': {
+            'screen_name': tweet['user']['screen_name'],
+            'name': tweet['user']['name'],
+        },
+    }
+    if 'media' in tweet['entities']:
+        status['entities'] = {
+            'media': tweet['entities']['media'],
+        }
+    status['retweet'] = is_retweet(tweet)
+    return status
+
+
 class Twitter(API):
+    """ add a layer over the twitter api to implement advanced behaviours """
     def __init__(self, config):
         """
         Init the path we will need to download (and the API)
         """
         API.__init__(self, config)
 
-        self.data_dir = config.get('path', 'data_dir')
+        self._image_path = "%s/" % config.get('path', 'image_path').rstrip('/')
+        self._daily_path = "%s/" % config.get('path', 'daily_path').rstrip('/')
 
-        self.friends_last_id_file = config.get('path', 'friends_last_id_file')
-        self.image_path = "%s/" % config.get('path', 'image_path').rstrip('/')
-        self.daily_path = "%s/" % config.get('path', 'daily_path').rstrip('/')
-
-        self.daily = '%s%s/' % (self.daily_path,
+        self._daily = '%s%s/' % (self._daily_path,
             datetime.now().strftime('%Y%m%d'))
 
-        self.retweet = 'retweet'
+        self._retweet = 'retweet'
 
         self.friends_last_id = LastId(config)
         self.friends = FriendList(config)
         self.listcontent = ListContent(config)
         self.tweets = AllTweets(config)
-
-    @staticmethod
-    def _is_retweet(status):
-        return ('retweeted_status' in status
-                and status['retweeted_status']['user']['screen_name']
-                    != status['user']['screen_name'])
 
     @staticmethod
     def should_get_image(_url, filepath):
@@ -83,11 +103,11 @@ class Twitter(API):
         """
         mkpath(os.path.dirname(filepath))
 
-        if not os.path.exists(self.daily):
-            mkpath(self.daily)
+        if not os.path.exists(self._daily):
+            mkpath(self._daily)
 
         for group_name in self.listcontent['list_content']:
-            path = os.path.join(self.daily, group_name)
+            path = os.path.join(self._daily, group_name)
             if not os.path.exists(path):
                 mkpath(path)
 
@@ -97,20 +117,22 @@ class Twitter(API):
         """
         directory = os.path.dirname(filepath)
         first_level = os.path.basename(directory)
-        second_level = os.path.basename(os.path.dirname(directory))
-        third_level = os.path.basename(os.path.dirname(os.path.dirname(directory)))
-        retweet = first_level == self.retweet
+
+        shift_dir = os.path.dirname(directory)
+        second_level = os.path.basename(shift_dir)
+        third_level = os.path.basename(os.path.dirname(shift_dir))
+        retweet = first_level == self._retweet
 
         if retweet:
             first_level = second_level
             second_level = third_level
 
         list_name = second_level
-        if second_level == os.path.basename(self.image_path.rstrip('/')):
+        if second_level == os.path.basename(self._image_path.rstrip('/')):
             list_name = ''
 
         try:
-            link = os.path.join(self.daily,
+            link = os.path.join(self._daily,
                                 list_name,
                                 '%s_%s' % (
                                     os.path.basename(directory),
@@ -154,19 +176,23 @@ class Twitter(API):
         """
         Retrieve the image
         """
-        retweet = self.retweet if self._is_retweet(status) else ''
+        retweet = self._retweet if is_retweet(status) else ''
         filepath = os.path.join(path, retweet, media_id + '.jpg')
         if not self.should_get_image(media_url, filepath):
-            print "%s %s exists" % ('retweet' if retweet else 'image', media_id)
+            print "      %s %s exists" % (
+                    'retweet' if retweet else 'image',
+                    media_id)
             return False
 
         data = self.get_image(media_url)
         if not data:
-            print "%s %s is empty" % ('retweet' if retweet else 'image', media_id)
+            print "      %s %s is empty" % (
+                    'retweet' if retweet else 'image',
+                    media_id)
             return False
 
         if retweet:
-            print "image %s is a retweet" % media_id
+            print "      image %s is a retweet" % media_id
 
         self.prepare_dir(filepath)
 
@@ -174,13 +200,14 @@ class Twitter(API):
             img = self.put_exif(data, status)
             self.write_image(img, filepath)
         except JpegFile.InvalidFile:
-            print "could not put exif in %s" % media_id
+            print "      could not put exif in %s" % media_id
             self.write_data(data, filepath)
 
         self.link_daily(filepath)
         return True
 
     def retrieve_all(self, statuses, path):
+        """ loop over all the statuses and call `retrieve_image` on each """
         pic_nb = 0
         for status in statuses:
             for media_id, media_url in self.get_images_from_status(status):
@@ -197,7 +224,9 @@ class Twitter(API):
         Run the twitter image downloader process
         """
         list_content, friend_in_list = self.get_list_content()
-        print "got %d lists %s" % (len(list_content), ', '.join([name for name in list_content]))
+        print "got %d lists %s" % (
+                len(list_content),
+                ', '.join([name for name in list_content]))
         print "%d friends in list" % (len(self.friends),)
 
         total_pic = 0
@@ -224,7 +253,7 @@ class Twitter(API):
 
             print "    * %d status retrieved" % (len(statuses),)
 
-            path = os.path.join(self.image_path, is_in_list, username)
+            path = os.path.join(self._image_path, is_in_list, username)
             total_pic += self.retrieve_all(statuses, path)
 
             print "    * last status id is %s" % (statuses[0]['id'],)
@@ -238,54 +267,42 @@ class Twitter(API):
                     ', '.join(not_affected_friends))
 
     def refresh_friend(self):
+        """ refresh the friend list cache """
         for key, value in self.get_friends():
             self.friends[key] = value
 
     def refresh_lists(self):
+        """ refresh the list content cache """
         for key, value in self.retrieve_list_content().items():
             self.listcontent[key] = value
 
-    def _simplify_tweet(self, tweet):
-        status = {
-            'created_at': tweet['created_at'],
-            'id': tweet['id'],
-            'text': tweet['text'],
-            'user': {
-                'screen_name': tweet['user']['screen_name'],
-                'name': tweet['user']['name'],
-            },
-        }
-        if 'media' in tweet['entities']:
-            status['entities'] = {
-                'media': tweet['entities']['media'],
-            }
-        status['retweet'] = self._is_retweet(tweet)
-        return status
-
     def cache_all_friend_tweets(self, friend_id):
+        """ get all/missing friends statuses and cache their simple info """
         last = None
         statuses = []
         if friend_id in self.tweets:
             statuses = self.tweets[friend_id]
-            last = max(statuses, key =operator.itemgetter('id'))['id']
+            last = max(statuses, key=operator.itemgetter('id'))['id']
 
         tweets = self.get_statuses_for_friend(friend_id, last)
         if not tweets:
-            return
+            return False
 
         print "%s friend has %d statuses %s" % (
                 friend_id, len(tweets),
                 'since %s' % last if last else '')
 
-        statuses.update([self._simplify_tweet(tweet) for tweet in tweets])
+        statuses.extend([simplify_tweet(tweet) for tweet in tweets])
 
         self.tweets[friend_id] = statuses
+        return True
 
     def cache_all_friends_tweets(self):
+        """ loop over all friend and call `cache_all_friend_tweets` """
         count_treated = 0
         for friend_id in [str(key) for key in self.friends]:
-            self.cache_all_friend_tweets(friend_id)
-            self.tweets.free(friend_id)
+            if self.cache_all_friend_tweets(friend_id):
+                self.tweets.free(friend_id)
             count_treated += 1
 
         return count_treated
