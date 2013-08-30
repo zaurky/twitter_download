@@ -63,6 +63,12 @@ class PklDict(DictType):
     def get(self, key, value=None):
         return self._internal.get(key, value)
 
+    def keys(self):
+        return self._internal.keys()
+
+    def items(self):
+        return self._internal.items()
+
     def __repr__(self):
         return self._internal.__repr__()
 
