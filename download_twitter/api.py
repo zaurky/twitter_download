@@ -26,6 +26,17 @@ def paginate(extract, ret_filter):
     return decorator
 
 
+from datetime import datetime
+from download_twitter.cache import PklDict
+class Ratelimit(PklDict):
+    def __init__(self, config):
+        """ Open or create the ratelimit file """
+        PklDict.__init__(self, config.get('path', 'ratelimit_file'))
+        self.ratelimit = dict(config.items('ratelimit'))
+
+    def call(self, method, *attr, **kwargs):
+        pass
+
 class API(object):
     """
     Twitter API class, init Twython and OAuth1Session
