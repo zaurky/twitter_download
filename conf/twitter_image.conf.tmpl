@@ -8,10 +8,22 @@ access_secret: XXXX
 data_dir: XXXX
 friends_last_id_file: %(data_dir)s/friends_last_id.pkl
 friends_list_file: %(data_dir)s/friends_list.pkl
+friends_weight_file: %(data_dir)s/friends_weight.pkl
 list_content_file: %(data_dir)s/list_content.pkl
+ratelimit_file: %(data_dir)s/ratelimit.pkl
 tweets_dir: %(data_dir)s/tweets
 image_path: %(data_dir)s/images
 daily_path: %(image_path)s/daily
 
+[ratelimit]
+get_friends_list: 15
+get_user_timeline: 180
+show_user: 180
+show_lists: 15
+get_list_members: 180
+create_list_members: -1
+delete_list_member: -1
+
 [debug]
 twitter_calls: False
+count_twitter_calls: False

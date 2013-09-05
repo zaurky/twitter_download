@@ -6,7 +6,7 @@ Twitter module
 import operator
 
 from .api import API
-from .cache import LastId, FriendList, ListContent, AllTweets
+from .cache import LastId, FriendList, ListContent, AllTweets, WeightFriends
 from .image import ImageFactory
 from .utils import simplify_status
 
@@ -19,6 +19,7 @@ class Twitter(API):
 
         self.friends_last_id = LastId(config)
         self.friends = FriendList(config)
+        self.weights = WeightFriends(config)
         self.listcontent = ListContent(config)
         self.tweets = AllTweets(config)
 
@@ -26,6 +27,19 @@ class Twitter(API):
         """ Get list content and friends in list """
         return (self.listcontent['list_content'],
                 self.listcontent['friend_in_list'])
+
+    def get_limited_friends(self, limit=179):
+        """
+        Return the friends we queried the less often,
+        limited to the number of call we can do on twitter api
+        """
+        def less_call(el1, el2):
+            """ compare on the 2nd element of the tuple """
+            return cmp(el1[1], el2[1])
+
+        return dict([(key, self.friends[key])
+                     for key, _ in sorted(self.weights.items(), cmp=less_call)
+                     if key in self.friends.keys()][:limit])
 
     def run(self,):
         """ Run the twitter image downloader process """
@@ -38,12 +52,13 @@ class Twitter(API):
         total_pic = 0
         not_affected_friends = []
 
-        for friend_id in self.friends:
+        for friend_id in self.get_limited_friends():
             since_id = self.friends_last_id.get(friend_id)
             is_in_list = friend_in_list.get(friend_id, '')
 
             statuses = self.get_statuses_for_friend(friend_id, since_id)
             if not statuses:
+                self.weights[friend_id] = self.weights.get(friend_id, 0) + 1
                 continue
 
             username = statuses[0]['user']['screen_name'].replace('/', ' ')
@@ -63,10 +78,14 @@ class Twitter(API):
                                        self._config,
                                        is_in_list,
                                        username)
-            total_pic += img_factory.retrieve_all(statuses)
+            friend_pic = img_factory.retrieve_all(statuses)
+            total_pic += friend_pic
 
             print "    * last status id is %s" % (statuses[0]['id'],)
             self.friends_last_id[friend_id] = statuses[0]['id']
+
+            if friend_pic < 2:
+                self.weights[friend_id] = self.weights.get(friend_id, 0) + 1
 
         if total_pic:
             print "Got %d images" % total_pic
@@ -79,6 +98,7 @@ class Twitter(API):
         """ refresh the friend list cache """
         for key, value in self.get_friends():
             self.friends[key] = value
+            self.weights[key] = self.weights.get(key, 0)
 
     def refresh_lists(self):
         """ refresh the list content cache """

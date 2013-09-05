@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from download_twitter.api import API
-from download_twitter.cache import LastId, FriendList, ListContent
+from download_twitter.cache import LastId, FriendList, ListContent, WeightFriends
 from download_twitter.config import get_config
 
 
@@ -15,6 +15,10 @@ def getLastId():
 
 def getFriendList():
     return FriendList(CONFIG)
+
+
+def getWeightList():
+    return WeightFriends(CONFIG)
 
 
 def getListContent():

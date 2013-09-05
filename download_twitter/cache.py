@@ -104,6 +104,16 @@ class ListContent(PklDict):
         PklDict.__init__(self, config.get('path', 'list_content_file'))
 
 
+class WeightFriends(PklDict):
+    """
+    Load a dict containing a weight per friend to get differents friendsi
+    when we dont get them all because of ratelimits
+    """
+
+    def __init__(self, config):
+        PklDict.__init__(self, config.get('path', 'friends_weight_file'))
+
+
 class MultiPkl(DictType):
     def __init__(self, filepath):
         self.filepath = filepath
