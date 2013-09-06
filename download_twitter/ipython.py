@@ -1,7 +1,11 @@
 # -*- coding: utf-8 -*-
 
 from download_twitter.api import API
-from download_twitter.cache import LastId, FriendList, ListContent, WeightFriends
+from download_twitter.cache import (LastId,
+                                    FriendList,
+                                    ListContent,
+                                    WeightFriends,
+                                    Ratelimit)
 from download_twitter.config import get_config
 
 
@@ -23,6 +27,10 @@ def getWeightList():
 
 def getListContent():
     return ListContent(CONFIG)
+
+
+def getRatelimit():
+    return Ratelimit(CONFIG)
 
 
 def refreshFriendList():
@@ -63,3 +71,17 @@ def setPerson(user_name):
 
 def info(user_name):
     return api.get_friend(user_name=user_name)
+
+
+def show_ratelimit():
+    ratelimit = getRatelimit()
+    dft_ratelimit = dict([(k, int(v))for k, v in CONFIG.items('ratelimit')])
+
+    ret = {}
+    now = api.twitter.now()
+    for url, limit in dft_ratelimit.items():
+        total = 0
+        for date in range(now - 16, now):
+            total += ratelimit[url].get(date, 0)
+        ret[url] = [limit, total]
+    return ret
