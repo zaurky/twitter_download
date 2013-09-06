@@ -83,7 +83,7 @@ class Ratelimit(Twython):
     @staticmethod
     def now():
         """ return the 15min lapse we are in (since epoc)"""
-        return int(datetime.now().strftime('%s')) / 900
+        return int(datetime.now().strftime('%s')) / 60
 
     def clean_records(self, url):
         """ remove old records """
@@ -91,7 +91,7 @@ class Ratelimit(Twython):
         for url in self.ratelimit:
             self.ratelimit[url] = dict([(date, value)
                     for date, value in self.ratelimit[url].items()
-                    if date - now < 3])
+                    if date - now < 16])
 
     def record_call(self, url):
         """ record that this url is called again in this time laps """
@@ -107,7 +107,11 @@ class Ratelimit(Twython):
             return
 
         now = self.now()
-        if self.ratelimit[url][now] > self.default_ratelimit[url]:
+        total = 0
+        for date in range(now - 16, now):
+            total += self.ratelimit[url].get(date, 0)
+
+        if total >= self.default_ratelimit[url]:
             raise TwythonRateLimitError('soft ratelimit reached', 429)
 
     def oauth_get(self, *attr, **kwargs):
