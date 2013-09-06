@@ -1,7 +1,11 @@
 #!/usr/bin/python
 
+import atexit
+from datetime import datetime
+from download_twitter.cache import Ratelimit as CacheRatelimit
 from functools import wraps
 from twython import Twython
+from twython.exceptions import TwythonRateLimitError
 from requests_oauthlib import OAuth1Session
 
 from .exception import exception_handler
@@ -26,16 +30,89 @@ def paginate(extract, ret_filter):
     return decorator
 
 
-from datetime import datetime
-from download_twitter.cache import PklDict
-class Ratelimit(PklDict):
-    def __init__(self, config):
-        """ Open or create the ratelimit file """
-        PklDict.__init__(self, config.get('path', 'ratelimit_file'))
-        self.ratelimit = dict(config.items('ratelimit'))
+class Ratelimit(Twython):
+    """ Override Twython to use our config file """
 
-    def call(self, method, *attr, **kwargs):
-        pass
+    def __init__(self, config):
+        consumer_key = config.get('main', 'consumer_key')
+        consumer_secret = config.get('main', 'consumer_secret')
+        access_key = config.get('main', 'access_key')
+        access_secret = config.get('main', 'access_secret')
+
+        Twython.__init__(self,
+                         consumer_key,
+                         consumer_secret,
+                         access_key,
+                         access_secret)
+
+        self._request_oauth = OAuth1Session(consumer_key,
+                                            consumer_secret,
+                                            access_key,
+                                            access_secret)
+
+        self.ratelimit = CacheRatelimit(config)
+
+        self.default_ratelimit = dict(config.items('ratelimit'))
+        self.initialize_ratelimit()
+
+        # monkey patch _request to check the ratelimit
+        self._rt_request = self._request
+        def request(url, *args, **kwargs):
+            working_url = self.clean_url(url)
+            if working_url in self.default_ratelimit:
+                self.clean_records(working_url)
+                self.record_call(working_url)
+                self.has_reached_limit(working_url)
+
+            return self._rt_request(url, *args, **kwargs)
+
+        self._request = request
+
+    def initialize_ratelimit(self):
+        """ set the new methods in ratelimit if any (from conf) """
+        for url in self.default_ratelimit:
+            if not url in self.ratelimit:
+                self.ratelimit[url] = {}
+
+    @staticmethod
+    def clean_url(url):
+        """ we just ratelimit on the last part of the url """
+        return url.replace('https://api.twitter.com/1.1/', '')
+
+    @staticmethod
+    def now():
+        """ return the 15min lapse we are in (since epoc)"""
+        return int(datetime.now().strftime('%s')) / 900
+
+    def clean_records(self, url):
+        """ remove old records """
+        now = self.now()
+        for url in self.ratelimit:
+            self.ratelimit[url] = dict([(date, value)
+                    for date, value in self.ratelimit[url].items()
+                    if date - now < 3])
+
+    def record_call(self, url):
+        """ record that this url is called again in this time laps """
+        now = self.now()
+        if not now in self.ratelimit[url]:
+            self.ratelimit[url][now] = 0
+
+        self.ratelimit[url][now] += 1
+
+    def has_reached_limit(self, url):
+        """ raise if the ratelimit is reach """
+        if self.default_ratelimit[url] == -1:
+            return
+
+        now = self.now()
+        if self.ratelimit[url][now] > self.default_ratelimit[url]:
+            raise TwythonRateLimitError('soft ratelimit reached', 429)
+
+    def oauth_get(self, *attr, **kwargs):
+        """ proxy for the oauth connection """
+        return self._request_oauth.get(*attr, **kwargs)
+
 
 class API(object):
     """
@@ -47,35 +124,41 @@ class API(object):
         """ Init the twitter api and a requests with the good crehencials """
         self._config = config
 
-        consumer_key = config.get('main', 'consumer_key')
-        consumer_secret = config.get('main', 'consumer_secret')
-        access_key = config.get('main', 'access_key')
-        access_secret = config.get('main', 'access_secret')
+        self.twitter = Ratelimit(config)
 
-        self.twitter = Twython(
-                            consumer_key,
-                            consumer_secret,
-                            access_key,
-                            access_secret)
-        self.request = OAuth1Session(
-                            consumer_key,
-                            consumer_secret,
-                            access_key,
-                            access_secret)
+        # debug options
+        self._call_log = {}
+        self._count_calls = config.getboolean('debug', 'count_twitter_calls')
+        self._log_calls = config.getboolean('debug', 'twitter_calls')
 
-        if config.getboolean('debug', 'twitter_calls'):
+        if self._log_calls or self._count_calls:
+            # monkey patch twitter requests
             self.twitter._true_request = self.twitter._request
 
+            if self._count_calls:
+                atexit.register(self.exit)
+
             def debug_request(url, *args, **kwargs):
-                print "%s %s" % (url, kwargs)
+                if self._log_calls:
+                    print "%s %s" % (url, kwargs)
+                if self._count_calls:
+                    self._call_log[url] = self._call_log.get(url, 0) + 1
                 return self.twitter._true_request(url, *args, **kwargs)
 
             self.twitter._request = debug_request
 
+    def exit(self):
+        """ print debug logs when exiting """
+        if self._count_calls:
+            print "> " + "#" * 78
+            for url, count in self._call_log.items():
+                print "> %s called %d times" % (url, count)
+            print "> " + "#" * 78
+
     @exception_handler
     def get_image(self, url):
         """ Retrieve data from the url """
-        request = self.request.get(url)
+        request = self.twitter.oauth_get(url)
         return request.content
 
     def get_statuses(self, friend_id, max_id=None, since_id=None):
