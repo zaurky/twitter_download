@@ -30,9 +30,11 @@ def exception_handler(method):
         except ConnectionError, err:
             print "    connection error, %s" % display_method(method, args, kwargs)
         except TwythonRateLimitError, err:
-            print err
-            print "at %s" % datetime.now()
-            sys.exit(-1)
+            if err.error_code != 1337:
+                print err
+                print "at %s" % datetime.now()
+                sys.exit(-1)
+            sys.exit(0)
         except TwythonAuthError, err:
             print "    auth error, %s" % display_method(method, args, kwargs)
         except TwythonStreamError, err:
