@@ -28,18 +28,15 @@ class Twitter(API):
         return (self.listcontent['list_content'],
                 self.listcontent['friend_in_list'])
 
-    def get_limited_friends(self, limit=179):
-        """
-        Return the friends we queried the less often,
-        limited to the number of call we can do on twitter api
-        """
+    def order_friends(self):
+        """ Return the friends we queried the less often, """
         def less_call(el1, el2):
             """ compare on the 2nd element of the tuple """
             return cmp(el1[1], el2[1])
 
         return dict([(key, self.friends[key])
                      for key, _ in sorted(self.weights.items(), cmp=less_call)
-                     if key in self.friends.keys()][:limit])
+                     if key in self.friends.keys()])
 
     def run(self,):
         """ Run the twitter image downloader process """
@@ -52,7 +49,7 @@ class Twitter(API):
         total_pic = 0
         not_affected_friends = []
 
-        for friend_id in self.get_limited_friends():
+        for friend_id in self.order_friends():
             since_id = self.friends_last_id.get(friend_id)
             is_in_list = friend_in_list.get(friend_id, '')
 
