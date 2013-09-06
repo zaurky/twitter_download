@@ -3,6 +3,7 @@
 import os
 from os.path import isfile
 
+import atexit
 from functools import wraps
 import pickle
 from types import DictType
@@ -45,6 +46,8 @@ class PklDict(DictType):
         else:
             self._internal = {}
 
+        atexit.register(self.exit)
+
     def __len__(self):
         return len(self._internal)
 
@@ -72,7 +75,7 @@ class PklDict(DictType):
     def __repr__(self):
         return self._internal.__repr__()
 
-    def __del__(self):
+    def exit(self):
         """ backup internal into the pkl file at the end """
         print "backup %s"% self.filepath
         pkl_file = open(self.filepath, 'wb')
@@ -119,6 +122,7 @@ class MultiPkl(DictType):
         self.filepath = filepath
         self._loaded = {}
         self._modified = set()
+        atexit.register(self.exit)
 
     def _filenames(self, key):
         return os.path.join(self.filepath, "%s" % key)
@@ -178,7 +182,7 @@ class MultiPkl(DictType):
     def __repr__(self):
         return '{%s}' % ', '.join(self.__list_files())
 
-    def __del__(self):
+    def exit(self):
         for key in self._modified:
             self.free(key)
 
