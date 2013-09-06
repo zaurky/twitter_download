@@ -52,7 +52,8 @@ class Ratelimit(Twython):
 
         self.ratelimit = CacheRatelimit(config)
 
-        self.default_ratelimit = dict(config.items('ratelimit'))
+        self.default_ratelimit = dict([(k, int(v))
+                                       for k, v in config.items('ratelimit')])
         self.initialize_ratelimit()
 
         # monkey patch _request to check the ratelimit
