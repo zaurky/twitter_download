@@ -63,6 +63,9 @@ class PklDict(DictType):
     def __iter__(self):
         return self._internal.__iter__()
 
+    def __contains__(self, key):
+        return self._internal.__contains__(key)
+
     def get(self, key, value=None):
         return self._internal.get(key, value)
 
@@ -115,6 +118,12 @@ class WeightFriends(PklDict):
 
     def __init__(self, config):
         PklDict.__init__(self, config.get('path', 'friends_weight_file'))
+
+
+class Ratelimit(PklDict):
+    def __init__(self, config):
+        """ Open or create the ratelimit file """
+        PklDict.__init__(self, config.get('path', 'ratelimit_file'))
 
 
 class MultiPkl(DictType):
