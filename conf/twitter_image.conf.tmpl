@@ -16,13 +16,13 @@ image_path: %(data_dir)s/images
 daily_path: %(image_path)s/daily
 
 [ratelimit]
-get_friends_list: 15
-get_user_timeline: 180
-show_user: 180
-show_lists: 15
-get_list_members: 180
-create_list_members: -1
-delete_list_member: -1
+friends/list.json: 15
+statuses/user_timeline.json: 180
+users/show.json: 180
+lists/list.json: 15
+lists/members.json: 180
+lists/members/create_all.json: -1
+lists/members/destroy_all.json: -1
 
 [debug]
 twitter_calls: False
