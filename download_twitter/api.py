@@ -108,11 +108,11 @@ class Ratelimit(Twython):
 
         now = self.now()
         total = 0
-        for date in range(now - 16, now):
+        for date in range(now - 15, now + 1):
             total += self.ratelimit[url].get(date, 0)
 
         if total >= self.default_ratelimit[url]:
-            raise TwythonRateLimitError('soft ratelimit reached', 429)
+            raise TwythonRateLimitError('soft ratelimit reached', 1337)
 
     def oauth_get(self, *attr, **kwargs):
         """ proxy for the oauth connection """
