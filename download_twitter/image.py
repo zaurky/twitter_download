@@ -133,40 +133,38 @@ class ImageFactory(object):
         except OSError:
             pass
 
+    OK = 0
+    RETWEET = 1
+    EMPTY = 2
+    EXISTS = 3
+    RETWEET_EXISTS = 4
+
     def retrieve_image(self, media_id, media_url, status):
         """ Retrieve the image """
         retweet = self._retweet if is_retweet(status) else ''
         filepath = os.path.join(self.path, retweet, media_id + '.jpg')
         if not self.should_get_image(media_url, filepath):
-            print "      %s %s exists" % (
-                    'retweet' if retweet else 'image',
-                    media_id)
-            return False
+            return self.RETWEET_EXISTS if retweet else self.EXISTS
 
         data = self._api.get_image(media_url)
         if not data:
-            print "      %s %s is empty" % (
-                    'retweet' if retweet else 'image',
-                    media_id)
-            return False
-
-        if retweet:
-            print "      image %s is a retweet" % media_id
+            return self.EMPTY
 
         self.prepare_dir(filepath)
         Image(media_id, filepath, data, status).write()
         self.link_daily(filepath)
-        return True
+        return self.RETWEET if retweet else self.OK
 
     def retrieve_all(self, statuses):
         """ loop over all the statuses and call `retrieve_image` on each """
         pic_nb = 0
+        retweet_nb = 0
         for status in statuses:
             for media_id, media_url in get_images_from_status(status):
-                if self.retrieve_image(media_id, media_url, status):
+                state = self.retrieve_image(media_id, media_url, status)
+                if state in (self.OK, self.RETWEET):
                     pic_nb += 1
+                if state in (self.RETWEET, ):
+                    retweet_nb += 1
 
-        if pic_nb:
-            print "    * %s pics" % (pic_nb,)
-
-        return pic_nb
+        return pic_nb, retweet_nb

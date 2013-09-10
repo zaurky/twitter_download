@@ -75,7 +75,13 @@ class Twitter(API):
                                        self._config,
                                        is_in_list,
                                        username)
-            friend_pic = img_factory.retrieve_all(statuses)
+            friend_pic, retweets = img_factory.retrieve_all(statuses)
+
+            if friend_pic:
+                print "    * %s pics %s" % (friend_pic,
+                                            ('with %s retweets' % retweets)
+                                             if retweets else '')
+
             total_pic += friend_pic
 
             print "    * last status id is %s" % (statuses[0]['id'],)
