@@ -9,6 +9,7 @@ from .api import API
 from .cache import LastId, FriendList, ListContent, AllTweets, WeightFriends
 from .image import ImageFactory
 from .utils import simplify_status
+from .exception import RateLimit
 
 
 class Twitter(API):
@@ -53,23 +54,29 @@ class Twitter(API):
             since_id = self.friends_last_id.get(friend_id)
             is_in_list = friend_in_list.get(friend_id, '')
 
-            statuses = self.get_statuses_for_friend(friend_id, since_id)
+            try:
+                statuses = self.get_statuses_for_friend(friend_id, since_id)
+            except RateLimit:
+                break
+
             if not statuses:
                 self.weights[friend_id] = self.weights.get(friend_id, 0) + 1
                 continue
 
             username = statuses[0]['user']['screen_name'].replace('/', ' ')
 
-            print "%s : %s %s" % (friend_id,
+            msg = "%s : %s %s" % (friend_id,
                                   username,
                                   "[%s]" % is_in_list if is_in_list else '')
             if not is_in_list:
                 not_affected_friends.append(username)
 
             if since_id is None:
-                print "    * User seems new to me"
+                msg += " (new user)"
 
-            print "    * %d status retrieved" % (len(statuses),)
+            print msg
+
+            msg = "    * %d status retrieved" % (len(statuses),)
 
             img_factory = ImageFactory(self,
                                        self._config,
@@ -78,17 +85,19 @@ class Twitter(API):
             friend_pic, retweets = img_factory.retrieve_all(statuses)
 
             if friend_pic:
-                print "    * %s pics %s" % (friend_pic,
-                                            ('with %s retweets' % retweets)
+                msg += " : %s pics%s" % (friend_pic,
+                                            (' with %s retweets' % retweets)
                                              if retweets else '')
 
             total_pic += friend_pic
 
-            print "    * last status id is %s" % (statuses[0]['id'],)
+            msg += " (until %s)" % (statuses[0]['id'],)
             self.friends_last_id[friend_id] = statuses[0]['id']
 
             if friend_pic < 2:
                 self.weights[friend_id] = self.weights.get(friend_id, 0) + 1
+
+            print msg
 
         if total_pic:
             print "Got %d images" % total_pic
