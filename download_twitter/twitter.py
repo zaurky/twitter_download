@@ -75,8 +75,9 @@ class Twitter(API):
 
             username = statuses[0]['user']['screen_name'].replace('/', ' ')
 
-            msg = "%s : %s %s" % (friend_id,
+            msg = "%s : %s (%s) %s" % (friend_id,
                                   username,
+                                  weight,
                                   "[%s]" % is_in_list if is_in_list else '')
             if not is_in_list:
                 not_affected_friends.append(username)
