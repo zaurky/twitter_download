@@ -29,15 +29,25 @@ class Twitter(API):
         return (self.listcontent['list_content'],
                 self.listcontent['friend_in_list'])
 
+    @property
+    def ponderated_weights(self):
+        mux = {'Person': 1, 'Rss': 0.8, None: 0.85}
+
+        return [(friend_id, weight *
+                 mux[self.listcontent['friend_in_list'].get(friend_id)])
+                 for friend_id, weight in self.weights.items()]
+
     def order_friends(self):
         """ Return the friends we queried the less often, """
+
         def less_call(el1, el2):
             """ compare on the 2nd element of the tuple """
             return cmp(el1[1], el2[1])
 
-        return [(key, self.friends[key])
-                     for key, _ in sorted(self.weights.items(), cmp=less_call)
-                     if key in self.friends.keys()]
+        return [(key, self.friends[key], weight)
+                    for key, weight
+                        in sorted(self.ponderated_weights, cmp=less_call)
+                    if key in self.friends.keys()]
 
     def run(self,):
         """ Run the twitter image downloader process """
@@ -50,7 +60,7 @@ class Twitter(API):
         total_pic = 0
         not_affected_friends = []
 
-        for friend_id, _ in self.order_friends():
+        for friend_id, _, weight in self.order_friends():
             since_id = self.friends_last_id.get(friend_id)
             is_in_list = friend_in_list.get(friend_id, '')
 
