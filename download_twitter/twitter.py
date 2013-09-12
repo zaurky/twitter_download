@@ -35,9 +35,9 @@ class Twitter(API):
             """ compare on the 2nd element of the tuple """
             return cmp(el1[1], el2[1])
 
-        return dict([(key, self.friends[key])
+        return [(key, self.friends[key])
                      for key, _ in sorted(self.weights.items(), cmp=less_call)
-                     if key in self.friends.keys()])
+                     if key in self.friends.keys()]
 
     def run(self,):
         """ Run the twitter image downloader process """
@@ -50,7 +50,7 @@ class Twitter(API):
         total_pic = 0
         not_affected_friends = []
 
-        for friend_id in self.order_friends():
+        for friend_id, _ in self.order_friends():
             since_id = self.friends_last_id.get(friend_id)
             is_in_list = friend_in_list.get(friend_id, '')
 
