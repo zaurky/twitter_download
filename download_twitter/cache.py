@@ -126,6 +126,12 @@ class Ratelimit(PklDict):
         PklDict.__init__(self, config.get('path', 'ratelimit_file'))
 
 
+class DeletedFriends(PklDict):
+    """ Load the list of deleted friends """
+    def __init__(self, config):
+        PklDict.__init__(self, config.get('path', 'deleted_friends_file'))
+
+
 class MultiPkl(DictType):
     def __init__(self, filepath):
         self.filepath = filepath
