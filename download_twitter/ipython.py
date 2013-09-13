@@ -5,7 +5,8 @@ from download_twitter.cache import (LastId,
                                     FriendList,
                                     ListContent,
                                     WeightFriends,
-                                    Ratelimit)
+                                    Ratelimit,
+                                    DeletedFriends)
 from download_twitter.config import get_config
 
 
@@ -31,6 +32,10 @@ def getListContent():
 
 def getRatelimit():
     return Ratelimit(CONFIG)
+
+
+def getDeletedFriends():
+    return DeletedFriends(CONFIG)
 
 
 def refreshFriendList():
