@@ -33,6 +33,10 @@ class Twitter(API):
 
     @property
     def ponderated_weights(self):
+        """
+        the weight depend on the number of call done factor
+        the list friend is in
+        """
         mux = {'Person': 1, 'Rss': 0.8, None: 0.85}
 
         return [(friend_id, weight *
@@ -46,9 +50,11 @@ class Twitter(API):
             """ compare on the 2nd element of the tuple """
             return cmp(el1[1], el2[1])
 
+        weights = sorted(self.ponderated_weights, cmp=less_call)
+        print weights
+
         return [(key, self.friends[key], weight)
-                    for key, weight
-                        in sorted(self.ponderated_weights, cmp=less_call)
+                    for key, weight in weights
                     if key in self.friends.keys()]
 
     def run(self,):
@@ -100,8 +106,8 @@ class Twitter(API):
 
             if friend_pic:
                 msg += " : %s pics%s" % (friend_pic,
-                                            (' with %s retweets' % retweets)
-                                             if retweets else '')
+                                         (' with %s retweets' % retweets)
+                                         if retweets else '')
 
             total_pic += friend_pic
 
