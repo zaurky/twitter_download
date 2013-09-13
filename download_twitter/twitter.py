@@ -3,10 +3,12 @@
 Twitter module
 """
 
+from datetime import datetime
 import operator
 
 from .api import API
-from .cache import LastId, FriendList, ListContent, AllTweets, WeightFriends
+from .cache import (LastId, FriendList, ListContent, AllTweets, WeightFriends,
+                    DeletedFriends)
 from .image import ImageFactory
 from .utils import simplify_status
 from .exception import RateLimit
@@ -120,9 +122,17 @@ class Twitter(API):
 
     def refresh_friend(self):
         """ refresh the friend list cache """
+        old_friends = self.friends.keys()
+
         for key, value in self.get_friends():
             self.friends[key] = value
             self.weights[key] = self.weights.get(key, 0)
+            if key in old_friends:
+                old_friends.remove(key)
+
+        deleted_friends = DeletedFriends(self._config)
+        for friend_id in old_friends:
+            deleted_friends[friend_id] = datetime.now()
 
     def refresh_lists(self):
         """ refresh the list content cache """
