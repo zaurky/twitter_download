@@ -11,6 +11,7 @@ from .utils import sanitize, is_retweet, get_images_from_status
 import os
 from distutils.dir_util import mkpath
 from datetime import datetime
+from hashlib import md5
 
 
 class Image(object):
@@ -65,6 +66,22 @@ class Image(object):
             print "      could not put exif in %s" % self.media_id
             with open(self.filepath, 'wb') as fdesc:
                 fdesc.write(self.data)
+
+
+class ImageMd5(object):
+    def __init__(self, path):
+        self._path = path
+
+    def md5sum(self):
+        read_data = None
+        with open(self._path, 'r') as filehandle:
+            read_data = filehandle.read()
+
+        img = pexif.JpegFile.fromString(read_data)
+        img.exif.primary.Artist = ''
+        img.exif.primary.DateTimeOriginal = ''
+
+        return md5(img.writeString()).hexdigest().upper()
 
 
 class ImageFactory(object):
