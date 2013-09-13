@@ -2,14 +2,14 @@
 
 from download_twitter.config import get_config
 from download_twitter.twitter import Twitter
+from download_twitter.exception import RateLimit
 
 
-if __name__ == '__main__':
-    TWITTER = Twitter(get_config())
-    TWITTER.refresh_friend()
-    TWITTER.refresh_lists()
-    friends = TWITTER.friends.keys()
-    for list_name, content in TWITTER.listcontent['list_content'].items():
+def main(twitter):
+    twitter.refresh_friend()
+    twitter.refresh_lists()
+    friends = twitter.friends.keys()
+    for _, content in twitter.listcontent['list_content'].items():
         for friend_id in content:
             if friend_id not in friends:
                 print "friend %s not in friend list" % friend_id
@@ -17,4 +17,12 @@ if __name__ == '__main__':
                 friends.remove(friend_id)
 
     print "friends in not group : "
-    print ", ".join([TWITTER.friends[fid] for fid in friends])
+    print ", ".join([twitter.friends[fid] for fid in friends])
+
+
+if __name__ == '__main__':
+    TWITTER = Twitter(get_config())
+    try:
+        main(TWITTER)
+    except RateLimit:
+        print "Ratelimited"
