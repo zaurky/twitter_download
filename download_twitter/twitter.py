@@ -67,6 +67,7 @@ class Twitter(API):
             try:
                 statuses = self.get_statuses_for_friend(friend_id, since_id)
             except RateLimit:
+                print "Ratelimited"
                 break
 
             if not statuses:
@@ -153,9 +154,13 @@ class Twitter(API):
         """ loop over all friend and call `cache_all_friend_tweets` """
         count_treated = 0
         for friend_id in [str(key) for key in self.friends]:
-            if self.cache_all_friend_tweets(friend_id):
-                self.tweets.free(friend_id)
-            count_treated += 1
+            try:
+                if self.cache_all_friend_tweets(friend_id):
+                    self.tweets.free(friend_id)
+                count_treated += 1
+            except RateLimit:
+                print "Ratelimited"
+                break
 
         return count_treated
 
