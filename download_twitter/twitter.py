@@ -51,7 +51,6 @@ class Twitter(API):
             return cmp(el1[1], el2[1])
 
         weights = sorted(self.ponderated_weights, cmp=less_call)
-        print weights
 
         return [(key, self.friends[key], weight)
                     for key, weight in weights
