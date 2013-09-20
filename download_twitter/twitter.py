@@ -82,41 +82,37 @@ class Twitter(API):
                 continue
 
             username = statuses[0]['user']['screen_name'].replace('/', ' ')
-
-            msg = "%s : %s (%s) %s" % (friend_id,
-                                  username,
-                                  weight,
-                                  "[%s]" % is_in_list if is_in_list else '')
             if not is_in_list:
                 not_affected_friends.append(username)
 
-            if since_id is None:
-                msg += " (new user)"
-
-            print msg
-
-            msg = "    * %d status retrieved" % (len(statuses),)
+            print ("%(friend_id)s : %(name)s (%(weight)s)%(in_list)s"
+                   "%(is_new)s" % {
+                        'friend_id': friend_id,
+                        'name': username,
+                        'weight': weight,
+                        'in_list': " [%s]" % is_in_list if is_in_list else '',
+                        'is_new': ' (new user)' if not since_id else '',
+                  })
 
             img_factory = ImageFactory(self,
                                        self._config,
                                        is_in_list,
                                        username)
+
             friend_pic, retweets = img_factory.retrieve_all(statuses)
-
-            if friend_pic:
-                msg += " : %s pics%s" % (friend_pic,
-                                         (' with %s retweets' % retweets)
-                                         if retweets else '')
-
             total_pic += friend_pic
-
-            msg += " (until %s)" % (statuses[0]['id'],)
             self.friends_last_id[friend_id] = statuses[0]['id']
 
             if friend_pic < 2:
                 self.weights[friend_id] = self.weights.get(friend_id, 0) + 1
 
-            print msg
+            print ("    * %(statuses)d status retrieved %(pictures)s pics "
+                   "with %(retweets)s retweets (until %(last_id)s)" % {
+                        'statuses': len(statuses),
+                        'retweets': retweets,
+                        'pictures': friend_pic,
+                        'last_id': statuses[0]['id'],
+                  })
 
         if total_pic:
             print "Got %d images" % total_pic
