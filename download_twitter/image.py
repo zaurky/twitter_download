@@ -9,9 +9,11 @@ from pexif import JpegFile
 from .utils import sanitize, is_retweet, get_images_from_status
 
 import os
-from distutils.dir_util import mkpath
 from datetime import datetime
+from distutils.dir_util import mkpath
+from vine_dwl import VineDwl
 from hashlib import md5
+import urllib2
 
 
 class Image(object):
@@ -84,7 +86,7 @@ class ImageMd5(object):
         return md5(img.writeString()).hexdigest().upper()
 
 
-class ImageFactory(object):
+class MediaFactory(object):
     """ ImageFactory to convert all statuses in `Image` """
 
     def __init__(self, api, config, listname, username):
@@ -100,7 +102,7 @@ class ImageFactory(object):
         self._retweet = 'retweet'
 
     @staticmethod
-    def should_get_image(_url, filepath):
+    def should_get_media(_url, filepath):
         """
         Should we get this image demending on several considerations
         (does the file exists only right now)
@@ -160,7 +162,7 @@ class ImageFactory(object):
         """ Retrieve the image """
         retweet = self._retweet if is_retweet(status) else ''
         filepath = os.path.join(self.path, retweet, media_id + '.jpg')
-        if not self.should_get_image(media_url, filepath):
+        if not self.should_get_media(media_url, filepath):
             return self.RETWEET_EXISTS if retweet else self.EXISTS
 
         data = self._api.get_image(media_url)
@@ -172,10 +174,44 @@ class ImageFactory(object):
         self.link_daily(filepath)
         return self.RETWEET if retweet else self.OK
 
+    def get_vine_link(self, status):
+        urls = [word for word in status['text'].split(' ')
+                     if word.startswith('http')]
+
+        ret = []
+        for url in urls:
+            request = urllib2.urlopen(url)
+            if 'vine.co' in request.url:
+                ret.append(request.url)
+
+        return ret
+
+    def retrieve_video(self, status):
+        """ Retrieve a video from a vine link """
+        retweet = self._retweet if is_retweet(status) else ''
+        filepath = os.path.join(self.path, retweet, str(status['id']) + '.mp4')
+
+        if not self.should_get_media(None, filepath):
+            return self.RETWEET_EXISTS if retweet else self.EXISTS
+
+        self.prepare_dir(filepath)
+        urls = self.get_vine_link(status)
+        if not urls:
+            return self.EMPTY
+
+        for url in urls:
+            vine = VineDwl(url)
+            # TODO if more than one, change the name!
+            vine.write_video(filepath)
+
+        return self.RETWEET if retweet else self.OK
+
     def retrieve_all(self, statuses):
         """ loop over all the statuses and call `retrieve_image` on each """
         pic_nb = 0
         retweet_nb = 0
+        video_nb = 0
+        video_retweet_nb = 0
         for status in statuses:
             for media_id, media_url in get_images_from_status(status):
                 state = self.retrieve_image(media_id, media_url, status)
@@ -184,4 +220,10 @@ class ImageFactory(object):
                 if state in (self.RETWEET, ):
                     retweet_nb += 1
 
-        return pic_nb, retweet_nb
+            state = self.retrieve_video(status)
+            if state in (self.OK, self.RETWEET):
+                video_nb += 1
+            if state in (self.RETWEET, ):
+                video_retweet_nb += 1
+
+        return pic_nb, retweet_nb, video_nb, video_retweet_nb

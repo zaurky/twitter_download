@@ -9,7 +9,7 @@ import operator
 from .api import API
 from .cache import (LastId, FriendList, ListContent, AllTweets, WeightFriends,
                     DeletedFriends)
-from .image import ImageFactory
+from .image import MediaFactory
 from .utils import simplify_status
 from .exception import RateLimit
 
@@ -94,23 +94,25 @@ class Twitter(API):
                         'is_new': ' (new user)' if not since_id else '',
                   })
 
-            img_factory = ImageFactory(self,
+            media_factory = MediaFactory(self,
                                        self._config,
                                        is_in_list,
                                        username)
 
-            friend_pic, retweets = img_factory.retrieve_all(statuses)
-            total_pic += friend_pic
+            images, images_rt, videos, videos_rt = media_factory.retrieve_all(statuses)
+            total_pic += images
             self.friends_last_id[friend_id] = statuses[0]['id']
 
-            if friend_pic < 2:
+            if images < 2:
                 self.weights[friend_id] = self.weights.get(friend_id, 0) + 1
 
-            print ("    * %(statuses)d status retrieved %(pictures)s pics "
-                   "with %(retweets)s retweets (until %(last_id)s)" % {
+            print ("    * %(statuses)d status retrieved %(images)s pics "
+                   "with %(images_rt)s retweets and %(videos)s videos (until %(last_id)s)" % {
                         'statuses': len(statuses),
-                        'retweets': retweets,
-                        'pictures': friend_pic,
+                        'images': images,
+                        'images_rt': images_rt,
+                        'videos': videos,
+                        'videos_rt': videos_rt,
                         'last_id': statuses[0]['id'],
                   })
 
