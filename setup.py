@@ -24,6 +24,7 @@ setup(
         'requests>=1.2.3',
         'requests-oauthlib>=0.3.2',
         'twython>=3.0.0',
+        'vine_dwl',
     ],
     classifiers=[
         'Environment :: Web Environment',
