@@ -14,6 +14,7 @@ from distutils.dir_util import mkpath
 from vine_dwl import VineDwl
 from hashlib import md5
 import urllib2
+from urllib2 import HTTPError, URLError
 
 
 class Image(object):
@@ -176,11 +177,27 @@ class MediaFactory(object):
 
     def get_vine_link(self, status):
         urls = [word for word in status['text'].split(' ')
-                     if word.startswith('http')]
+                     if word.startswith('http')
+                         and '://' in word]
 
         ret = []
         for url in urls:
-            request = urllib2.urlopen(url)
+            try:
+                # right now t.co urls are 22 long
+                if url.startswith('https://'):
+                    url = url[0:23]
+                else:
+                    url = url[0:22]
+                request = urllib2.urlopen(url)
+            except (HTTPError, URLError, ValueError):
+                try:
+                    print url
+                except:
+                    pass
+                continue
+            except UnicodeEncodeError:
+                continue
+
             if 'vine.co' in request.url:
                 ret.append(request.url)
 
