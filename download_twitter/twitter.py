@@ -166,7 +166,18 @@ class Twitter(API):
     def cache_all_friends_tweets(self):
         """ loop over all friend and call `cache_all_friend_tweets` """
         count_treated = 0
-        for friend_id in [str(key) for key in self.friends]:
+        def index(array, element):
+            try:
+                return array.index(element)
+            except ValueError:
+                return -1
+
+        friend_ids = [(index(self.tweets.keys(), str(friend_id)), friend_id)
+                      for friend_id in self.friends.keys()]
+        friend_ids.sort()
+        friend_ids = [i[1] for i in friend_ids]
+
+        for friend_id in [str(key) for key in friend_ids]:
             try:
                 if self.cache_all_friend_tweets(friend_id):
                     self.tweets.free(friend_id)
