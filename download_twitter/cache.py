@@ -5,6 +5,7 @@ from os.path import isfile
 
 import atexit
 from functools import wraps
+import glob
 import pickle
 from types import DictType
 
@@ -143,8 +144,14 @@ class MultiPkl(DictType):
         return os.path.join(self.filepath, "%s" % key)
 
     def __list_files(self):
-        mypath = self.filepath
-        return [f for f in os.listdir(mypath) if isfile(os.path.join(mypath, f))]
+        ext_files = [(os.stat(i).st_mtime, os.path.basename(i))
+                     for i in glob.glob('%s/*' % self.filepath)
+                     if os.path.isfile(i)]
+        ext_files.sort()
+        return [i[1] for i in ext_files]
+
+    def keys(self):
+        return self.__list_files()
 
     def __len__(self):
         return len(self.__list_files())
