@@ -20,9 +20,9 @@ setup(
     url='http://github.com/zaurky/twitter_download',
     packages=['download_twitter'],
     scripts=[
-        'all_tweets.py',
-        'download_image.py',
-        'refresh_lists.py',
+        'bin/all_tweets.py',
+        'bin/download_image.py',
+        'bin/refresh_lists.py',
     ],
     install_requires=[
         'pexif>=0.13',
