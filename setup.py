@@ -19,6 +19,11 @@ setup(
     license='GPLV2',
     url='http://github.com/zaurky/twitter_download',
     packages=['download_twitter'],
+    scripts=[
+        'all_tweets.py',
+        'download_image.py',
+        'refresh_lists.py',
+    ],
     install_requires=[
         'pexif>=0.13',
         'requests>=1.2.3',
