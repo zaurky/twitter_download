@@ -15,6 +15,7 @@ from vine_dwl import VineDwl
 from hashlib import md5
 import urllib2
 from urllib2 import HTTPError, URLError
+from httplib import BadStatusLine
 
 
 class Image(object):
@@ -182,16 +183,20 @@ class MediaFactory(object):
 
         ret = []
         for url in urls:
+            # right now t.co urls are 22 long
+            if url.startswith('https://'):
+                url = url[0:23]
+            else:
+                url = url[0:22]
+
             try:
-                # right now t.co urls are 22 long
-                if url.startswith('https://'):
-                    url = url[0:23]
-                else:
-                    url = url[0:22]
                 request = urllib2.urlopen(url)
-            except (HTTPError, URLError, ValueError):
+            except (HTTPError, URLError, ValueError, BadStatusLine), err:
                 try:
-                    print url
+                    if hasattr(err, code):
+                        print (err.code, err, url)
+                    else:
+                        print (err, url)
                 except:
                     pass
                 continue
