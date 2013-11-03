@@ -28,8 +28,8 @@ class Twitter(API):
 
     def get_list_content(self):
         """ Get list content and friends in list """
-        return (self.listcontent['list_content'],
-                self.listcontent['friend_in_list'])
+        return (self.listcontent.get('list_content', []),
+                self.listcontent.get('friend_in_list', {}))
 
     @property
     def ponderated_weights(self):
@@ -40,7 +40,7 @@ class Twitter(API):
         mux = {'Person': 1, 'Rss': 0.8, None: 0.85}
 
         return [(friend_id, weight *
-                 mux[self.listcontent['friend_in_list'].get(friend_id)])
+                 mux[self.listcontent.get('friend_in_list', {}).get(friend_id)])
                  for friend_id, weight in self.weights.items()]
 
     def order_friends(self):
