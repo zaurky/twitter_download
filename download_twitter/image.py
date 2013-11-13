@@ -224,7 +224,10 @@ class MediaFactory(object):
         for url in urls:
             vine = VineDwl(url)
             # TODO if more than one, change the name!
-            vine.write_video(filepath)
+            try:
+                vine.write_video(filepath)
+            except ValueError as err:
+                print err
 
         return self.RETWEET if retweet else self.OK
 
