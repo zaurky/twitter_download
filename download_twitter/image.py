@@ -16,6 +16,7 @@ from hashlib import md5
 import urllib2
 from urllib2 import HTTPError, URLError
 from httplib import BadStatusLine
+import socket
 
 
 class Image(object):
@@ -193,14 +194,14 @@ class MediaFactory(object):
                 request = urllib2.urlopen(url)
             except (HTTPError, URLError, ValueError, BadStatusLine), err:
                 try:
-                    if hasattr(err, code):
+                    if hasattr(err, 'code'):
                         print (err.code, err, url)
                     else:
                         print (err, url)
                 except:
                     pass
                 continue
-            except UnicodeEncodeError:
+            except socket.error:
                 continue
 
             if 'vine.co' in request.url:
