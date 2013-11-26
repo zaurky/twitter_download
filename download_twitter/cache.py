@@ -42,7 +42,10 @@ class PklDict(DictType):
         if os.path.exists(self.filepath):
             print "retrieve %s" % self.filepath
             pkl_file = open(self.filepath, 'rb')
-            self._internal = pickle.load(pkl_file)
+            try:
+                self._internal = pickle.load(pkl_file)
+            except EOFError:
+                self._internal = {}
             pkl_file.close()
         else:
             self._internal = {}
