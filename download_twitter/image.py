@@ -192,6 +192,8 @@ class MediaFactory(object):
 
             try:
                 request = urllib2.urlopen(url)
+            except UnicodeEncodeError:
+                continue
             except (HTTPError, URLError, ValueError, BadStatusLine), err:
                 try:
                     if hasattr(err, 'code'):
