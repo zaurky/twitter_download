@@ -59,8 +59,8 @@ class Image(object):
         if not self.img.exif.primary.has_key('Artist'):
             self.img.exif.primary.Artist = self.name
 
-        if not self.img.exif.primary.has_key('DateTimeOriginal'):
-            self.img.exif.primary.DateTimeOriginal = self.created_at
+        if not self.img.exif.primary.has_key('DateTime'):
+            self.img.exif.primary.DateTime = self.created_at
 
     def write(self):
         """ write image data and exif when possible """
