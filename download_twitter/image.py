@@ -227,8 +227,9 @@ class MediaFactory(object):
             # TODO if more than one, change the name!
             try:
                 vine.write_video(filepath)
-            except ValueError as err:
-                print err
+            except (ValueError, AttributeError) as err:
+                print ('Error in vine retrieve for %s (%s)' %
+                       (url, err))
 
         return self.RETWEET if retweet else self.OK
 
